@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "OstoSense | Daftar Pasien",
   description: "Daftar dan pemantauan pasien OstoSense",
+  icons: {
+    icon: "/Logo.svg",
+  },
 };
 
 export default function RootLayout({
