@@ -183,7 +183,7 @@ export function DashboardHome({
         ) : (
           <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-[14px]">
             <p className="text-slate-500 font-medium">Tidak ada pasien yang sesuai dengan filter.</p>
-            <button onClick={() => {setSearchQuery(""); setRiskFilter("Semua"); setTypeFilter("Semua");}} className="mt-2 text-sm text-blue-600 hover:underline">
+            <button onClick={() => setActiveTab("Semua")} className="mt-2 text-sm text-blue-600 hover:underline">
               Reset filter
             </button>
           </div>
