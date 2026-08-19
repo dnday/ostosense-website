@@ -1,102 +1,136 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        setError("Email atau password salah");
+        return;
+      }
+      const { token, user } = await res.json();
+      localStorage.setItem("ostosense_token", token);
+      localStorage.setItem("ostosense_user", JSON.stringify(user));
+      router.replace("/");
+    } catch {
+      setError("Tidak dapat terhubung ke server. Pastikan backend berjalan.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
-      {/* Left Panel - Gradient Branding & Showcase */}
-      <div 
-        className="hidden lg:flex lg:w-[57%] flex-col justify-between p-12 relative overflow-hidden" 
-        style={{
-          background: "linear-gradient(135deg, #A2AFC2 0%, #495B7D 25%, #304265 50%, #1D2F4A 100%)"
-        }}
-      >
-        {/* Background Decorative Pattern */}
-        <div className="absolute right-0 top-1/4 opacity-[0.03] translate-x-1/4">
-          <Image src="/Logo.svg" alt="Pattern" width={800} height={800} className="brightness-0 invert" />
+      {/* Left Panel - Navy Branding (Figma 15:365) */}
+      <div className="hidden lg:flex lg:w-[57%] flex-col justify-center gap-8 xl:gap-12 px-10 xl:px-[89px] py-12 relative overflow-hidden bg-[#1D2F4A]">
+        {/* Siluet logo transparan di belakang */}
+        <Image
+          src="/Logo.svg"
+          alt=""
+          aria-hidden
+          width={800}
+          height={800}
+          className="pointer-events-none absolute -right-40 -bottom-40 h-auto w-[70%] max-w-none brightness-0 invert opacity-[0.04]"
+        />
+
+        <div className="relative z-10 flex items-center gap-4 xl:gap-6">
+          <Image
+            src="/Logo.svg"
+            alt="OstoSense"
+            width={106}
+            height={106}
+            className="brightness-0 invert shrink-0 h-auto w-16 xl:w-[106px]"
+            priority
+          />
+          <h2 className="text-[clamp(40px,5.5vw,84px)] leading-[0.86] tracking-[-1.44px] text-white whitespace-nowrap">
+            <span className="font-bold">OSTO</span>
+            <span className="font-light">SENSE</span>
+          </h2>
         </div>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <Image src="/Logo.svg" alt="OstoSense" width={40} height={40} className="brightness-0 invert" />
-            <span className="text-2xl font-bold tracking-tight text-white">OstoSense</span>
-          </div>
-        </div>
-        
-        {/* Main Content (Text + Showcase Card) */}
-        <div className="relative z-10 flex flex-col gap-12 w-full max-w-2xl mt-12">
-          
-          <div className="flex flex-col gap-6">
-            <h2 className="text-[44px] font-bold leading-[1.15] tracking-tight text-white">
-              OSTOSENSE
-            </h2>
-            <p className="text-lg text-white/80 leading-relaxed font-light max-w-xl">
-              Sistem peringatan dini cerdas yang menggabungkan sensor Laser-Induced Graphene (LIG) dan analisis degradasi hidrokoloid untuk memantau risiko kebocoran, kesehatan kulit, dan volume kantong secara real-time.
-            </p>
-          </div>
+        <p className="relative z-10 max-w-[669px] text-lg xl:text-xl leading-7 text-[#dbeafe]">
+          Sistem peringatan dini cerdas yang menggabungkan sensor Laser-Induced
+          Graphene (LIG) dan analisis degradasi hidrokoloid untuk memantau
+          risiko kebocoran, kesehatan kulit, dan volume kantong secara
+          real-time.
+        </p>
 
-          {/* Product Showcase Glassmorphism Card */}
-          <div className="w-[380px] rounded-3xl bg-white/10 p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] backdrop-blur-sm border border-white/20">
-            <div className="rounded-2xl bg-white/20 border border-white/20 shadow-inner h-[200px] w-full overflow-hidden flex flex-col gap-4 p-4">
-               {/* Dashboard Mock UI Lines */}
-               <div className="h-4 w-1/3 bg-white/30 rounded-full" />
-               <div className="flex gap-4">
-                 <div className="h-16 w-1/2 bg-white/20 rounded-xl" />
-                 <div className="h-16 w-1/2 bg-white/20 rounded-xl" />
-               </div>
-               <div className="h-20 w-full bg-white/10 rounded-xl" />
-            </div>
+        {/* Product Showcase */}
+        <div className="relative z-10 self-center flex w-full max-w-[379px] flex-col items-center rounded-3xl border border-white/20 bg-white/10 p-6 xl:p-8 shadow-[0_25px_50px_0_rgba(0,0,0,0.25)]">
+          <div className="w-full max-w-[292px] overflow-hidden rounded-2xl border border-white/20 bg-white shadow-lg">
+            <Image
+              src="/login-showcase.jpg"
+              alt="Pasien menggunakan aplikasi OstoSense"
+              width={292}
+              height={205}
+              className="h-[205px] w-full object-cover"
+            />
           </div>
-          
-        </div>
-        
-        <div className="relative z-10">
-          <p className="text-sm text-white/50">© 2026 OstoSense Dashboard. All rights reserved.</p>
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
       <div className="flex w-full lg:w-[43%] flex-col items-center justify-center bg-white px-4 py-12 sm:px-6 lg:px-16">
-        
         {/* Logo mobile */}
         <div className="mb-12 flex lg:hidden flex-col items-center gap-4">
           <Image src="/Logo.svg" alt="OstoSense Logo" width={64} height={64} />
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">OstoSense</h1>
         </div>
 
-        <div className="flex w-full max-w-[380px] flex-col gap-8">
+        <div className="flex w-full max-w-[364px] flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <h2 className="text-[30px] font-semibold tracking-tight text-[#0F172B]">Welcome back</h2>
+            <h2 className="text-[30px] font-semibold tracking-[-0.6px] text-[#0F172B]">Welcome back</h2>
             <p className="text-base text-[#45556C]">Sign in to access your dashboard</p>
           </div>
 
-          <form className="flex flex-col gap-8">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <label htmlFor="email" className="text-base text-[#62748E]">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  className="h-[56px] w-full rounded-[10px] border border-[#E2E8F0] bg-transparent px-4 py-2 text-slate-900 outline-none transition-all focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
-                />
-              </div>
+          <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+            <input
+              id="email"
+              type="email"
+              required
+              aria-label="Email Address"
+              placeholder="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-[58px] w-full rounded-[10px] border border-[#E2E8F0] bg-transparent px-3 text-slate-900 outline-none transition-all placeholder:text-[#62748E] focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+            />
 
-              <div className="flex flex-col gap-2">
-                <label htmlFor="password" className="text-base text-[#62748E]">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  className="h-[56px] w-full rounded-[10px] border border-[#E2E8F0] bg-transparent px-4 py-2 text-slate-900 outline-none transition-all focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
-                />
-              </div>
-            </div>
+            <input
+              id="password"
+              type="password"
+              required
+              aria-label="Password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-[58px] w-full rounded-[10px] border border-[#E2E8F0] bg-transparent px-3 text-slate-900 outline-none transition-all placeholder:text-[#62748E] focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+            />
+
+            {error && (
+              <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
+                {error}
+              </p>
+            )}
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -109,35 +143,20 @@ export default function LoginPage() {
                   Remember this device
                 </label>
               </div>
-              <Link href="#" className="text-sm text-[#1D2F4A] font-medium hover:underline">
+              <Link href="#" className="text-sm text-[#1D2F4A] hover:underline">
                 Forgot password?
               </Link>
             </div>
 
             <button
-              type="button"
-              className="flex h-[56px] w-full items-center justify-center rounded-lg bg-[#283953] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#1D2F4A]"
+              type="submit"
+              disabled={loading}
+              className="flex h-[56px] w-full items-center justify-center rounded-[10px] bg-[#283953] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#1D2F4A] disabled:opacity-60"
             >
-              Sign In to Dashboard
+              {loading ? "Signing in..." : "Sign In to Dashboard"}
             </button>
           </form>
 
-          <div className="relative my-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#E2E8F0]"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-3 text-[#62748E]">Or access via</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="flex h-[56px] w-full items-center justify-center gap-3 rounded-lg border border-[#E2E8F0] bg-white text-base font-medium text-[#0F172B] shadow-sm transition-colors hover:bg-slate-50"
-          >
-            <Lock className="h-5 w-5 text-[#62748E]" />
-            Microsoft Healthcare ID
-          </button>
         </div>
       </div>
     </div>

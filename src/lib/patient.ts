@@ -12,15 +12,15 @@ export function isWarningPatient(patient: Patient) {
 export function getPatientToneClasses(patient: Patient) {
   if (isUrgentPatient(patient)) {
     return {
-      tone: "border-rose-400 bg-rose-50",
-      accent: "text-rose-500",
+      tone: "border-rose-300 bg-rose-50/50",
+      accent: "text-rose-600",
     };
   }
 
   if (isWarningPatient(patient)) {
     return {
-      tone: "border-orange-400 bg-amber-50",
-      accent: "text-orange-400",
+      tone: "border-amber-300 bg-amber-50/50",
+      accent: "text-amber-600",
     };
   }
 

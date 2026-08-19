@@ -1,4 +1,4 @@
-import { Icon, type IconName } from "@/components/ui/icon";
+import { Activity, Droplets, Heart } from "lucide-react";
 
 export function MetricCard({
   icon,
@@ -6,30 +6,38 @@ export function MetricCard({
   value,
   color,
 }: {
-  icon: IconName;
+  icon: "pulse" | "drop" | "heart" | string;
   label: string;
   value: number;
-  color: "rose" | "blue" | "purple";
+  color: "rose" | "amber" | "blue" | "purple";
 }) {
-  const themes = {
-    rose: "border-rose-200 bg-rose-50 text-rose-500 [&_.bar]:bg-rose-500",
-    blue: "border-blue-200 bg-blue-50 text-blue-600 [&_.bar]:bg-blue-500",
-    purple:
-      "border-purple-200 bg-purple-50 text-purple-600 [&_.bar]:bg-purple-500",
+  const iconProps = { size: 16, strokeWidth: 1.5 };
+  
+  const iconMap: Record<string, JSX.Element> = {
+    pulse: <Activity {...iconProps} />,
+    drop: <Droplets {...iconProps} />,
+    heart: <Heart {...iconProps} />,
+  };
+
+  const colorStyles = {
+    rose: "text-rose-500 [&_.bar]:bg-rose-500",
+    amber: "text-amber-500 [&_.bar]:bg-amber-500",
+    blue: "text-blue-500 [&_.bar]:bg-blue-500",
+    purple: "text-purple-500 [&_.bar]:bg-purple-500",
   };
 
   return (
-    <div className={`h-[104px] rounded-[14px] border p-3 ${themes[color]}`}>
+    <div className={`h-[104px] rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm ${colorStyles[color]}`}>
       <div className="flex items-center gap-2">
-        <Icon name={icon} size={16} />
-        <span className="text-xs leading-4 text-slate-500">{label}</span>
+        {iconMap[icon] || <Activity {...iconProps} />}
+        <span className="text-[13px] font-medium leading-4 text-slate-500">{label}</span>
       </div>
-      <strong className="mt-2 block text-2xl font-normal text-slate-900">
+      <strong className="mt-2.5 block text-2xl font-semibold tracking-tight text-slate-900">
         {value}%
       </strong>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80">
+      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-slate-100">
         <i
-          className="bar block h-full rounded-full"
+          className="bar block h-full rounded-full transition-all duration-500"
           style={{ width: `${value}%` }}
         />
       </div>

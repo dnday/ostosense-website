@@ -1,6 +1,7 @@
-import { Icon } from "@/components/ui/icon";
+import { Building, Home } from "lucide-react";
 import type { PatientType } from "@/types/patient";
 
+/* Ikon sama dengan tab filter di dashboard-home (Building/Home) agar konsisten. */
 export function CareBadge({
   type,
   large = false,
@@ -8,12 +9,20 @@ export function CareBadge({
   type: PatientType;
   large?: boolean;
 }) {
+  const inap = type === "inap";
+  const BadgeIcon = inap ? Building : Home;
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded ${large ? "h-9 px-3 text-sm" : "h-5 px-2 text-xs"} ${type === "inap" ? "bg-purple-50 text-purple-600" : large ? "bg-blue-100 text-blue-600" : "bg-blue-50 text-slate-700"}`}
+      className={`inline-flex shrink-0 items-center font-medium rounded-md ring-1 ring-inset ${
+        large ? "h-9 gap-1.5 px-3 text-sm" : "h-5 gap-1 px-2 text-xs"
+      } ${
+        inap
+          ? "bg-indigo-50 text-indigo-700 ring-indigo-600/20"
+          : "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+      }`}
     >
-      <Icon name={type === "inap" ? "bed" : "home"} size={large ? 16 : 12} />
-      {type === "inap" ? "Rawat Inap" : "Rawat Jalan"}
+      <BadgeIcon size={large ? 16 : 12} strokeWidth={2} />
+      {inap ? "Rawat Inap" : "Rawat Jalan"}
     </span>
   );
 }

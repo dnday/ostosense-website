@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -12,13 +12,25 @@ import { supabase } from "@/lib/supabase";
 // Fallback data if DB fails
 import { patients as fallbackPatients, rosterPatients as fallbackRoster } from "@/data/patients";
 
-export function DashboardShell({ children }: { children?: React.ReactNode }) {
-  const [view, setView] = useState<"home" | "patients">("home");
-  const [selectedName, setSelectedName] = useState("Thomas Brown");
+function ShellContent({ children }: { children?: React.ReactNode }) {
+  const searchParams = useSearchParams();
+  const [view, setView] = useState<"home" | "patients">(searchParams.get("view") === "patients" ? "patients" : "home");
+  const [selectedName, setSelectedName] = useState(searchParams.get("patient") || "Thomas Brown");
   
   // Realtime Supabase State
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const authRouter = useRouter();
+  useEffect(() => {
+    // ponytail: token cuma dicek keberadaannya di client; validasi server-side saat auth beneran dipakai.
+    if (!localStorage.getItem("ostosense_token")) {
+      authRouter.replace("/login");
+    } else {
+      setAuthChecked(true);
+    }
+  }, [authRouter]);
 
   useEffect(() => {
     // Initial Fetch
@@ -68,7 +80,7 @@ export function DashboardShell({ children }: { children?: React.ReactNode }) {
 
   // Compute selected patient and roster
   const selectedPatient = patients.find((patient) => patient.name === selectedName) ?? (patients.length > 0 ? patients[0] : fallbackPatients[0]);
-  const rosterPatients = patients.filter((p) => p.type === 'inap');
+  const rosterPatients = patients;
 
   const router = useRouter();
   const pathname = usePathname();
@@ -76,22 +88,28 @@ export function DashboardShell({ children }: { children?: React.ReactNode }) {
   const openPatient = (name: string) => {
     setSelectedName(name);
     setView("patients");
+    router.push(`/?view=patients&patient=${encodeURIComponent(name)}`);
   };
 
   const handleNavigate = (newView: "home" | "patients" | "notifications") => {
     if (newView === "notifications") {
       router.push("/notifications");
     } else {
-      if (pathname !== "/") {
+      setView(newView);
+      if (newView === "home") {
         router.push("/");
       } else {
-        setView(newView);
+        router.push(`/?view=patients&patient=${encodeURIComponent(selectedName)}`);
       }
     }
   };
 
   let currentView = view as "home" | "patients" | "notifications";
   if (pathname === "/notifications") currentView = "notifications";
+
+  if (!authChecked) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans text-slate-950 lg:h-screen lg:overflow-hidden">
@@ -103,16 +121,24 @@ export function DashboardShell({ children }: { children?: React.ReactNode }) {
         {children ? (
           <div className="flex-1 overflow-auto">{children}</div>
         ) : view === "home" ? (
-          <DashboardHome patients={patients} onOpenPatient={openPatient} />
+          <DashboardHome patients={patients} />
         ) : (
           <PatientWorkspace
             rosterPatients={rosterPatients}
             selectedPatient={selectedPatient}
             selectedName={selectedName}
-            onSelectPatient={setSelectedName}
+            onSelectPatient={openPatient}
           />
         )}
       </div>
     </main>
+  );
+}
+
+export function DashboardShell({ children }: { children?: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <ShellContent>{children}</ShellContent>
+    </Suspense>
   );
 }

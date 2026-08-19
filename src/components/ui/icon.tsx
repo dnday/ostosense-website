@@ -10,6 +10,7 @@ export type IconName =
   | "heart"
   | "home"
   | "pulse"
+  | "sparkles"
   | "sun"
   | "trend"
   | "users";
@@ -59,6 +60,13 @@ const iconPaths: Record<IconName, ReactNode> = {
     <>
       <path d="M12 21s-7-4.4-7-11a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 6.6-7 11-7 11Z" />
       <path d="M8 13h2l1-3 2 6 1-3h2" />
+    </>
+  ),
+  sparkles: (
+    <>
+      <path d="M12 3l1.7 4.6L18 9.3l-4.3 1.7L12 15l-1.7-4L6 9.3l4.3-1.7L12 3Z" />
+      <path d="M19 12l.8 2.2L22 15l-2.2.8L19 18l-.8-2.2L16 15l2.2-.8L19 12Z" />
+      <path d="M5 14l.9 2.5L8.5 17l-2.6.9L5 20l-.9-2.1L1.5 17l2.6-.5L5 14Z" />
     </>
   ),
   sun: (

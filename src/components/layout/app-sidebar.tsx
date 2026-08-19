@@ -1,5 +1,14 @@
-import { Icon } from "@/components/ui/icon";
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Bell, Home, LogOut, Settings, Users } from "lucide-react";
+
+const NAV_ITEMS = [
+  { key: "home", label: "Beranda", Icon: Home },
+  { key: "patients", label: "Pasien", Icon: Users },
+  { key: "notifications", label: "Notifikasi", Icon: Bell },
+] as const;
 
 export function AppSidebar({
   view,
@@ -8,52 +17,87 @@ export function AppSidebar({
   view: "home" | "patients" | "notifications";
   onNavigate: (view: "home" | "patients" | "notifications") => void;
 }) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("ostosense_token");
+    localStorage.removeItem("ostosense_user");
+    router.replace("/login");
+  };
+
+  // Inisial dari user yang login (fallback "NS")
+  let initials = "NS";
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("ostosense_user");
+      if (raw) {
+        const name: string = JSON.parse(raw).name ?? "";
+        const parts = name.replace(/^Ns\.\s*/i, "").split(/\s+/).filter(Boolean);
+        if (parts.length > 0) {
+          initials = parts
+            .slice(0, 2)
+            .map((p) => p[0].toUpperCase())
+            .join("");
+        }
+      }
+    } catch {
+      /* pakai fallback */
+    }
+  }
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 flex w-20 flex-col items-center gap-8 bg-[#1d2f4a] py-8 text-slate-300">
-      <div className="grid size-12 place-items-center">
+    <aside className="fixed inset-y-0 left-0 z-20 flex w-20 flex-col items-center bg-[#1d2f4a] py-6">
+      <div className="mb-8 grid size-12 place-items-center">
         <Image src="/Logo.svg" alt="OstoSense Logo" width={40} height={40} />
       </div>
-      <nav className="flex flex-1 flex-col gap-4" aria-label="Navigasi utama">
-        <button
-          aria-label="Beranda"
-          onClick={() => onNavigate("home")}
-          className={`grid size-12 place-items-center rounded-[14px] hover:bg-white/10 ${view === "home" ? "bg-white/20 text-white" : ""}`}
-        >
-          <Icon name="home" />
-        </button>
-        <button
-          aria-label="Daftar pasien"
-          onClick={() => onNavigate("patients")}
-          className={`grid size-12 place-items-center rounded-[14px] hover:bg-white/10 ${view === "patients" ? "bg-white/20 text-white" : ""}`}
-        >
-          <Icon name="users" />
-        </button>
-        <button
-          aria-label="Notifikasi"
-          onClick={() => onNavigate("notifications")}
-          className={`grid size-12 place-items-center rounded-[14px] hover:bg-white/10 ${view === "notifications" ? "bg-white/20 text-white" : ""}`}
-        >
-          <Icon name="bell" />
-        </button>
+
+      <nav className="flex flex-1 flex-col gap-2" aria-label="Navigasi utama">
+        {NAV_ITEMS.map(({ key, label, Icon }) => {
+          const active = view === key;
+          return (
+            <button
+              key={key}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              onClick={() => onNavigate(key)}
+              className={`flex w-16 flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${
+                active
+                  ? "bg-white/15 text-white"
+                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+              <span className={`text-[10px] leading-3 tracking-wide ${active ? "font-semibold" : "font-medium"}`}>
+                {label}
+              </span>
+            </button>
+          );
+        })}
+
         <button
           aria-label="Pengaturan"
-          className="grid size-12 place-items-center rounded-[14px] hover:bg-white/10"
+          title="Segera hadir"
+          className="flex w-16 flex-col items-center gap-1 rounded-xl py-2.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
         >
-          <Icon name="gear" />
+          <Settings size={20} strokeWidth={1.8} />
+          <span className="text-[10px] font-medium leading-3 tracking-wide">Setelan</span>
         </button>
       </nav>
-      <div className="flex w-12 flex-col items-center gap-3 border-t border-white/10 pt-4">
-        <button
-          aria-label="Profil NS"
-          className="size-12 rounded-full border-2 border-white/30 bg-white/20 text-sm text-white"
+
+      <div className="flex w-16 flex-col items-center gap-3 border-t border-white/10 pt-5">
+        <div
+          aria-label="Profil"
+          className="grid size-11 place-items-center rounded-full border-2 border-white/30 bg-white/15 text-sm font-semibold tracking-wide text-white"
         >
-          NS
-        </button>
+          {initials}
+        </div>
         <button
           aria-label="Keluar"
-          className="grid size-10 place-items-center rounded-[10px]"
+          onClick={handleLogout}
+          className="flex w-16 flex-col items-center gap-1 rounded-xl py-2 text-slate-400 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
         >
-          <Icon name="door" size={16} />
+          <LogOut size={18} strokeWidth={1.8} />
+          <span className="text-[10px] font-medium leading-3 tracking-wide">Keluar</span>
         </button>
       </div>
     </aside>

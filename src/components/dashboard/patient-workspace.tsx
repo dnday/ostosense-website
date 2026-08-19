@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Search, Users, ArrowDownUp, AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { CareBadge } from "@/components/ui/care-badge";
 import { Icon } from "@/components/ui/icon";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -21,6 +22,7 @@ export function PatientWorkspace({
   onSelectPatient: (name: string) => void;
 }) {
   const [logs, setLogs] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     // In a real app, we'd filter by session_id linked to the patient.
@@ -57,20 +59,44 @@ export function PatientWorkspace({
   const isCritical = risk >= 80;
   const isWarning = risk >= 50 && risk < 80;
 
+  const filteredRoster = rosterPatients.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="py-8 pr-12 pl-8 lg:h-[calc(100vh-105px)] lg:overflow-hidden">
       <h2 className="mb-6 text-2xl font-normal leading-8">
         Daftar Semua Pasien
       </h2>
       <div className="grid gap-6 lg:h-[calc(100%-56px)] lg:grid-cols-2 lg:overflow-hidden">
-        <section className="flex min-h-[530px] flex-col overflow-hidden rounded-[14px] border border-gray-200 bg-white">
-          <header className="h-[81px] shrink-0 border-b border-gray-200 px-4 pt-4">
-            <h3 className="text-lg font-normal tracking-[-.36px]">
-              Daftar Pasien
-            </h3>
-            <p className="mt-1 text-xs text-slate-500">
-              {rosterPatients.length} pasien • Diurutkan berdasarkan risiko
-            </p>
+        <section className="flex min-h-[530px] flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm">
+          <header className="flex h-[81px] shrink-0 items-center justify-between border-b border-slate-200 px-5">
+            <div className="flex flex-col">
+              <h3 className="text-[19px] font-medium tracking-tight text-slate-900">
+                Daftar Pasien
+              </h3>
+              <div className="mt-1.5 flex items-center gap-2">
+                <div className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                  <Users size={12} className="text-slate-400" />
+                  {rosterPatients.length} Pasien
+                </div>
+                <div className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                  <ArrowDownUp size={12} className="text-slate-400" />
+                  Urut: Risiko
+                </div>
+              </div>
+            </div>
+            <div className="relative w-48">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari pasien..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-1.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-slate-900 transition-all placeholder:text-slate-400"
+              />
+            </div>
           </header>
           <div className="flex flex-col gap-2 overflow-y-auto p-4">
             {rosterPatients.length === 0 ? (
@@ -79,7 +105,7 @@ export function PatientWorkspace({
                   <div className="mx-auto grid size-14 place-items-center rounded-full bg-slate-100 text-slate-400">
                     <Icon name="users" size={24} />
                   </div>
-                  <p className="mt-4 text-sm text-slate-600">
+                  <p className="mt-4 text-sm font-medium text-slate-600">
                     Belum ada pasien
                   </p>
                   <p className="mt-1 text-xs text-slate-400">
@@ -87,8 +113,12 @@ export function PatientWorkspace({
                   </p>
                 </div>
               </div>
+            ) : filteredRoster.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm font-medium text-slate-500">Pasien tidak ditemukan</p>
+              </div>
             ) : (
-              rosterPatients.map((patient) => (
+              filteredRoster.map((patient) => (
                 <PatientRow
                   key={patient.name}
                   patient={patient}
@@ -135,27 +165,27 @@ export function PatientWorkspace({
                 </div>
 
                 {isCritical ? (
-                  <div className="mt-5 flex min-h-[53px] items-center gap-3 rounded-xl border-l-4 border-rose-500 bg-rose-100 px-3 text-rose-700">
-                    <Icon name="alert" size={20} />
+                  <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-rose-500 bg-rose-50/50 px-4 py-3.5">
+                    <AlertCircle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
                     <div>
-                      <p className="text-sm font-semibold">Status Kritis - Tindakan Segera Diperlukan</p>
-                      <p className="text-xs">Monitoring ketat direkomendasikan</p>
+                      <h4 className="text-[14px] font-semibold text-rose-700">Status Kritis - Tindakan Segera Diperlukan</h4>
+                      <p className="mt-0.5 text-[13px] text-rose-600/80">Monitoring ketat direkomendasikan</p>
                     </div>
                   </div>
                 ) : isWarning ? (
-                  <div className="mt-5 flex min-h-[53px] items-center gap-3 rounded-xl border-l-4 border-amber-500 bg-amber-100 px-3 text-amber-700">
-                    <Icon name="alert" size={20} />
+                  <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-amber-500 bg-amber-50/50 px-4 py-3.5">
+                    <AlertTriangle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
                     <div>
-                      <p className="text-sm font-semibold">Status Waspada</p>
-                      <p className="text-xs">Perhatikan tren perubahan cairan</p>
+                      <h4 className="text-[14px] font-semibold text-amber-700">Status Waspada</h4>
+                      <p className="mt-0.5 text-[13px] text-amber-600/80">Perhatikan tren perubahan cairan</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-5 flex min-h-[53px] items-center gap-3 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 px-3 text-emerald-700">
-                    <Icon name="trend" size={20} />
+                  <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-emerald-500 bg-emerald-50/50 px-4 py-3.5">
+                    <CheckCircle2 strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                     <div>
-                      <p className="text-sm font-semibold">Status Normal</p>
-                      <p className="text-xs">Tidak ada risiko kebocoran terdeteksi</p>
+                      <h4 className="text-[14px] font-semibold text-emerald-700">Status Normal</h4>
+                      <p className="mt-0.5 text-[13px] text-emerald-600/80">Tidak ada risiko kebocoran terdeteksi</p>
                     </div>
                   </div>
                 )}

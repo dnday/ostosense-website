@@ -15,7 +15,7 @@ export function MonitoringCard({
   const moisture = kind === "moisture";
 
   return (
-    <section className="rounded-[14px] border border-slate-200 bg-white p-5">
+    <section className="rounded-[14px] border border-slate-200 bg-white p-5 overflow-hidden min-w-0">
       <div className="flex items-center justify-between">
         <div>
           <h4 className="text-sm font-normal text-slate-900">{title}</h4>

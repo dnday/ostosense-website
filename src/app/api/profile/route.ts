@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { UserProfile } from '@/types/user';
+import { UserProfile } from "@/types/user";
+import { NextResponse } from "next/server";
 
 // Simulasi mengambil data dari database user
 const mockUser: UserProfile = {
-  id: 'usr-001',
-  name: 'Sarah',
-  role: 'Perawat',
-  unit: 'Unit ICU A',
-  currentShift: 'Shift Pagi',
+  id: "usr-001",
+  name: "Sarah",
+  role: "Perawat",
+  unit: "Unit ICU A",
+  currentShift: "",
   isShiftActive: true,
 };
 
