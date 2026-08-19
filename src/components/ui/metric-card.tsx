@@ -1,3 +1,4 @@
+import React from "react";
 import { Activity, Droplets, Heart } from "lucide-react";
 
 export function MetricCard({
@@ -13,7 +14,7 @@ export function MetricCard({
 }) {
   const iconProps = { size: 16, strokeWidth: 1.5 };
   
-  const iconMap: Record<string, JSX.Element> = {
+  const iconMap: Record<string, React.ReactNode> = {
     pulse: <Activity {...iconProps} />,
     drop: <Droplets {...iconProps} />,
     heart: <Heart {...iconProps} />,
