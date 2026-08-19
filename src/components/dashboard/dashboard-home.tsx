@@ -39,8 +39,8 @@ export function DashboardHome({
   const filteredPatients = useMemo(() => {
     return patients.filter((p) => {
       if (activeTab === "Semua") return true;
-      if (activeTab === "Rawat Inap") return p.type === "inap" || p.type === "RS";
-      if (activeTab === "Rawat Jalan") return p.type === "jalan" || p.type === "Home";
+      if (activeTab === "Rawat Inap") return p.type === "inap";
+      if (activeTab === "Rawat Jalan") return p.type === "jalan";
       return true;
     });
   }, [patients, activeTab]);
