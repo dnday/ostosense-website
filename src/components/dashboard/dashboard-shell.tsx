@@ -24,12 +24,15 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
 
   const authRouter = useRouter();
   useEffect(() => {
-    // ponytail: token cuma dicek keberadaannya di client; validasi server-side saat auth beneran dipakai.
-    if (!localStorage.getItem("ostosense_token")) {
-      authRouter.replace("/login");
-    } else {
-      setAuthChecked(true);
-    }
+    // ponytail: sesi hanya divalidasi di client via Supabase; tambahkan middleware SSR bila butuh proteksi server-side.
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) authRouter.replace("/login");
+      else setAuthChecked(true);
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) authRouter.replace("/login");
+    });
+    return () => subscription.subscription.unsubscribe();
   }, [authRouter]);
 
   useEffect(() => {

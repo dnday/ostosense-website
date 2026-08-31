@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Bell, Home, LogOut, Settings, Users } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const NAV_ITEMS = [
   { key: "home", label: "Beranda", Icon: Home },
@@ -19,31 +21,22 @@ export function AppSidebar({
 }) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    localStorage.removeItem("ostosense_token");
-    localStorage.removeItem("ostosense_user");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     router.replace("/login");
   };
 
   // Inisial dari user yang login (fallback "NS")
-  let initials = "NS";
-  if (typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem("ostosense_user");
-      if (raw) {
-        const name: string = JSON.parse(raw).name ?? "";
-        const parts = name.replace(/^Ns\.\s*/i, "").split(/\s+/).filter(Boolean);
-        if (parts.length > 0) {
-          initials = parts
-            .slice(0, 2)
-            .map((p) => p[0].toUpperCase())
-            .join("");
-        }
+  const [initials, setInitials] = useState("NS");
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const name: string = data.user?.user_metadata?.full_name ?? data.user?.email ?? "";
+      const parts = name.replace(/^Ns\.\s*/i, "").split(/\s+/).filter(Boolean);
+      if (parts.length > 0) {
+        setInitials(parts.slice(0, 2).map((p) => p[0].toUpperCase()).join(""));
       }
-    } catch {
-      /* pakai fallback */
-    }
-  }
+    });
+  }, []);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-20 flex-col items-center bg-[#1d2f4a] py-6">

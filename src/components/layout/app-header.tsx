@@ -3,6 +3,7 @@
 import { Moon, Sun, Sunrise, Sunset } from "lucide-react";
 import { UserProfile } from "@/types/user";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function AppHeader({
   view,
@@ -34,20 +35,19 @@ export function AppHeader({
       setGreeting("Selamat Malam");
     }
 
-    // Mengambil profil user secara dinamis dari API route
-    async function fetchProfile() {
-      try {
-        const response = await fetch("/api/profile");
-        const json = await response.json();
-        if (json.success) {
-          setUser(json.data);
-        }
-      } catch (error) {
-        console.error("Gagal mengambil profil", error);
-      }
-    }
-
-    fetchProfile();
+    // Mengambil profil dari sesi Supabase yang sedang login
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      setUser({
+        id: data.user.id,
+        name: data.user.user_metadata?.full_name || data.user.email || "Pengguna",
+        // ponytail: role/unit/shift belum ada tabel staf di Supabase; placeholder sampai fitur roster staf digarap.
+        role: "Perawat",
+        unit: "",
+        currentShift: "",
+        isShiftActive: false,
+      });
+    });
   }, []);
 
   return (
