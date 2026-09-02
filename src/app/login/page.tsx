@@ -1,18 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; // Import supabase disiapkan untuk real logic
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("error") === "wrong_role") {
+      setError("Akun ini terdaftar sebagai pasien di app mobile OstoSense, bukan akun nakes. Gunakan akun nakes untuk masuk ke dashboard ini.");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();

@@ -9,6 +9,7 @@ import { DashboardHome } from "@/components/dashboard/dashboard-home";
 import { PatientWorkspace } from "@/components/dashboard/patient-workspace";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
+import { ensureRole } from "@/lib/profile";
 // Fallback data if DB fails
 import { patients as fallbackPatients, rosterPatients as fallbackRoster } from "@/data/patients";
 
@@ -25,12 +26,23 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
   const authRouter = useRouter();
   useEffect(() => {
     // ponytail: sesi hanya divalidasi di client via Supabase; tambahkan middleware SSR bila butuh proteksi server-side.
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) authRouter.replace("/login");
-      else setAuthChecked(true);
-    });
+    const checkSession = async (userId: string | undefined) => {
+      if (!userId) {
+        authRouter.replace("/login");
+        return;
+      }
+      const result = await ensureRole(userId, "nakes");
+      if (!result.ok) {
+        await supabase.auth.signOut();
+        authRouter.replace("/login?error=wrong_role");
+        return;
+      }
+      setAuthChecked(true);
+    };
+
+    supabase.auth.getSession().then(({ data }) => checkSession(data.session?.user.id));
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) authRouter.replace("/login");
+      checkSession(session?.user.id);
     });
     return () => subscription.subscription.unsubscribe();
   }, [authRouter]);
