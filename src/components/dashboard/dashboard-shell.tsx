@@ -34,7 +34,7 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
       const result = await ensureRole(userId, "nakes");
       if (!result.ok) {
         await supabase.auth.signOut();
-        authRouter.replace("/login?error=wrong_role");
+        authRouter.replace(result.actualRole ? "/login?error=wrong_role" : "/login?error=role_check_failed");
         return;
       }
       setAuthChecked(true);

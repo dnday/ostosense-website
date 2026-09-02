@@ -24,8 +24,11 @@ function LoginForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("error") === "wrong_role") {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "wrong_role") {
       setError("Akun ini terdaftar sebagai pasien di app mobile OstoSense, bukan akun nakes. Gunakan akun nakes untuk masuk ke dashboard ini.");
+    } else if (errorParam === "role_check_failed") {
+      setError("Gagal memverifikasi akun, coba lagi. Jika masih gagal, hubungi admin.");
     }
   }, [searchParams]);
 
