@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, User, Bell, Check } from "lucide-react";
+import { Settings, User, Bell, Check, SlidersHorizontal } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { supabase } from "@/lib/supabase";
+import { Calibration, DEFAULT_CALIBRATION, fetchCalibration, saveCalibration } from "@/lib/calibration";
 
 const NOTIF_STORAGE_KEY = "nakes-notif-prefs";
 
@@ -33,6 +34,9 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS);
+  const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
+  const [calibrationSaving, setCalibrationSaving] = useState(false);
+  const [calibrationSaved, setCalibrationSaved] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -41,7 +45,20 @@ export default function SettingsPage() {
     });
     const raw = typeof window !== "undefined" ? localStorage.getItem(NOTIF_STORAGE_KEY) : null;
     if (raw) setPrefs(JSON.parse(raw));
+    fetchCalibration().then(setCalibration);
   }, []);
+
+  const setCalibrationField = (key: keyof Calibration, value: string) => {
+    setCalibration((prev) => ({ ...prev, [key]: Number(value) || 0 }));
+  };
+
+  const submitCalibration = async () => {
+    setCalibrationSaving(true);
+    await saveCalibration(calibration);
+    setCalibrationSaving(false);
+    setCalibrationSaved(true);
+    setTimeout(() => setCalibrationSaved(false), 2000);
+  };
 
   const togglePref = (key: keyof NotifPrefs) => {
     const next = { ...prefs, [key]: !prefs[key] };
@@ -102,6 +119,73 @@ export default function SettingsPage() {
           >
             {saved ? <Check className="h-4 w-4" /> : null}
             {saving ? "Menyimpan..." : saved ? "Tersimpan" : "Simpan Perubahan"}
+          </button>
+        </section>
+
+        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-slate-400" />
+            <h2 className="text-sm font-semibold text-slate-900">Kalibrasi Sensor</h2>
+          </div>
+          <p className="-mt-2 text-xs text-slate-500">
+            Nilai mentah sensor (capacitance/LIG) yang dipetakan ke persentase di grafik. Sesuaikan setelah kalibrasi ulang sensor fisik.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Kapasitansi Kosong (raw)</label>
+              <input
+                type="number"
+                value={calibration.cap_empty}
+                onChange={(e) => setCalibrationField("cap_empty", e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Kapasitansi Penuh (raw)</label>
+              <input
+                type="number"
+                value={calibration.cap_full}
+                onChange={(e) => setCalibrationField("cap_full", e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">LIG Baseline (raw, sehat)</label>
+              <input
+                type="number"
+                value={calibration.lig_base}
+                onChange={(e) => setCalibrationField("lig_base", e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">LIG Mati (raw, degradasi total)</label>
+              <input
+                type="number"
+                value={calibration.lig_dead}
+                onChange={(e) => setCalibrationField("lig_dead", e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Ambang Kelembaban Tinggi (%)</label>
+              <input
+                type="number"
+                value={calibration.humid_high}
+                onChange={(e) => setCalibrationField("humid_high", e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={submitCalibration}
+            disabled={calibrationSaving}
+            className="flex h-10 w-fit items-center gap-2 rounded-lg bg-[#283953] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1D2F4A] disabled:opacity-60"
+          >
+            {calibrationSaved ? <Check className="h-4 w-4" /> : null}
+            {calibrationSaving ? "Menyimpan..." : calibrationSaved ? "Tersimpan" : "Simpan Kalibrasi"}
           </button>
         </section>
 
