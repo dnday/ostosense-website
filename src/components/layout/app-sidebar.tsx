@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, Home, LogOut, Settings, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +20,7 @@ export function AppSidebar({
   onNavigate: (view: "home" | "patients" | "notifications") => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -69,21 +70,27 @@ export function AppSidebar({
 
         <button
           aria-label="Pengaturan"
-          title="Segera hadir"
-          className="flex w-16 flex-col items-center gap-1 rounded-xl py-2.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+          aria-current={pathname === "/settings" ? "page" : undefined}
+          onClick={() => router.push("/settings")}
+          className={`flex w-16 flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${
+            pathname === "/settings"
+              ? "bg-white/15 text-white"
+              : "text-slate-400 hover:bg-white/10 hover:text-white"
+          }`}
         >
-          <Settings size={20} strokeWidth={1.8} />
+          <Settings size={20} strokeWidth={pathname === "/settings" ? 2.2 : 1.8} />
           <span className="text-[10px] font-medium leading-3 tracking-wide">Setelan</span>
         </button>
       </nav>
 
       <div className="flex w-16 flex-col items-center gap-3 border-t border-white/10 pt-5">
-        <div
+        <button
           aria-label="Profil"
-          className="grid size-11 place-items-center rounded-full border-2 border-white/30 bg-white/15 text-sm font-semibold tracking-wide text-white"
+          onClick={() => router.push("/settings")}
+          className="grid size-11 place-items-center rounded-full border-2 border-white/30 bg-white/15 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-white/25"
         >
           {initials}
-        </div>
+        </button>
         <button
           aria-label="Keluar"
           onClick={handleLogout}
