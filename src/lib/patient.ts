@@ -1,5 +1,9 @@
 import type { Patient } from "@/types/patient";
 
+// ponytail: satu ESP32 fisik saat ini, jadi cuma 1 pasien yang punya data sensor beneran.
+// `sensor_logs` belum ada patient_id/device_id, upgrade ke filter per-pasien saat ada >1 device.
+export const DEMO_DEVICE_PATIENT_NAME = "Thomas Brown";
+
 export function isUrgentPatient(patient: Patient) {
   return (patient.risk ?? 0) >= 80;
 }

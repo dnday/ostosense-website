@@ -3,7 +3,7 @@ import { AlertTriangle, Droplets, Waves, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Chart } from "@/components/ui/chart";
 import { supabase } from "@/lib/supabase";
-import { isUrgentPatient, isWarningPatient } from "@/lib/patient";
+import { DEMO_DEVICE_PATIENT_NAME, isUrgentPatient, isWarningPatient } from "@/lib/patient";
 import type { Patient } from "@/types/patient";
 
 const historyEntries = [
@@ -28,6 +28,11 @@ export function PatientDetailModal({
   const [handled, setHandled] = useState(false);
 
   useEffect(() => {
+    // Cuma satu ESP32 fisik yang tersambung sekarang, lihat DEMO_DEVICE_PATIENT_NAME.
+    if (patient.name !== DEMO_DEVICE_PATIENT_NAME) {
+      setLogs([]);
+      return;
+    }
     const fetchLogs = async () => {
       const { data } = await supabase
         .from("sensor_logs")
@@ -45,10 +50,10 @@ export function PatientDetailModal({
 
   const avgMoisture = logs.length
     ? Math.round(logs.reduce((sum, log) => sum + (log.capacitance_raw ?? 0), 0) / logs.length)
-    : patient.level;
+    : null;
   const avgResistance = logs.length
     ? Math.round(logs.reduce((sum, log) => sum + (log.lig_raw ?? 0), 0) / logs.length)
-    : 45;
+    : null;
 
   return (
     <div
@@ -127,13 +132,17 @@ export function PatientDetailModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Kelembaban Rata-rata</p>
-              <p className="mt-1 text-[28px] text-slate-900">{avgMoisture}%</p>
-              <p className="mt-1 text-xs text-slate-400">Dalam rentang normal</p>
+              <p className="mt-1 text-[28px] text-slate-900">{avgMoisture !== null ? `${avgMoisture}%` : "—"}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {avgMoisture !== null ? "Dalam rentang normal" : "Belum ada device terpasang"}
+              </p>
             </div>
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Resistansi LIG</p>
-              <p className="mt-1 text-[28px] text-slate-900">{avgResistance}Ω</p>
-              <p className="mt-1 text-xs text-slate-400">Sensor berfungsi baik</p>
+              <p className="mt-1 text-[28px] text-slate-900">{avgResistance !== null ? `${avgResistance}Ω` : "—"}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {avgResistance !== null ? "Sensor berfungsi baik" : "Belum ada device terpasang"}
+              </p>
             </div>
           </div>
 

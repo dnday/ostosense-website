@@ -6,7 +6,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { MonitoringCard } from "@/components/ui/monitoring-card";
 import { PatientRow } from "@/components/ui/patient-row";
 import { clinicalNotes } from "@/data/clinical-notes";
-import { getPatientDetailCardBorderClass } from "@/lib/patient";
+import { DEMO_DEVICE_PATIENT_NAME, getPatientDetailCardBorderClass } from "@/lib/patient";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 
@@ -25,8 +25,13 @@ export function PatientWorkspace({
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // In a real app, we'd filter by session_id linked to the patient.
-    // For now, let's just fetch recent logs from Supabase for simulation.
+    // Cuma satu ESP32 fisik yang tersambung sekarang, dipasang ke DEMO_DEVICE_PATIENT_NAME.
+    // Pasien lain di roster belum punya device, jangan nampilin data sensor siapa pun buat mereka.
+    if (selectedName !== DEMO_DEVICE_PATIENT_NAME) {
+      setLogs([]);
+      return;
+    }
+
     const fetchLogs = async () => {
       const { data } = await supabase
         .from('sensor_logs')
