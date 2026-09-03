@@ -5,6 +5,10 @@ import { CareBadge } from "@/components/ui/care-badge";
 import { PatientDetailModal } from "@/components/dashboard/patient-detail-modal";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
+import { fetchCalibration, fetchLatestLigForSessions, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
+
+const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+const SKIN_INTEGRITY_WARNING_BELOW = 50;
 
 export function DashboardHome({
   patients,
@@ -12,13 +16,26 @@ export function DashboardHome({
   patients: Patient[];
 }) {
   const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
+  const [ligBySession, setLigBySession] = useState<Record<string, number>>({});
+  const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
 
   useEffect(() => {
     const sessionIds = patients
       .map((p) => getPatientSessionId(p.name))
       .filter((id): id is string => id !== null);
     fetchLatestPredictionsForSessions(sessionIds).then(setPredictions);
+    fetchLatestLigForSessions(sessionIds).then(setLigBySession);
+    fetchCalibration().then(setCalibration);
   }, [patients]);
+
+  // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
+  // kapasitif kantong. Jatuh balik ke kolom `skin` statis kalau belum ada log sensor.
+  const skinIntegrityForPatient = (patient: Patient) => {
+    const sessionId = getPatientSessionId(patient.name);
+    const lig = sessionId ? ligBySession[sessionId] : undefined;
+    if (lig === undefined) return patient.skin;
+    return clamp(((lig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100);
+  };
 
   const tierForPatient = (patient: Patient) => {
     const sessionId = getPatientSessionId(patient.name);
@@ -159,6 +176,7 @@ export function DashboardHome({
             const sessionId = getPatientSessionId(patient.name);
             const prediction = formatPrediction(sessionId ? predictions[sessionId] ?? null : null);
             const high = prediction.tier === "urgent";
+            const skinIntegrity = skinIntegrityForPatient(patient);
 
             return (
               <article
@@ -197,7 +215,10 @@ export function DashboardHome({
                     {prediction.label}
                   </span>
                   <span className="text-xs font-medium text-slate-400">
-                    • Kulit: <span className={patient.skin < 60 ? "text-amber-600" : "text-slate-500"}>{patient.skin < 60 ? "Perhatian" : "Sehat"}</span>
+                    • Kulit:{" "}
+                    <span className={skinIntegrity < SKIN_INTEGRITY_WARNING_BELOW ? "text-amber-600" : "text-slate-500"}>
+                      {skinIntegrity < SKIN_INTEGRITY_WARNING_BELOW ? "Perhatian" : "Sehat"}
+                    </span>
                   </span>
                 </div>
 

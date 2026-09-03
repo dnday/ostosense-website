@@ -24,3 +24,23 @@ export async function fetchCalibration(): Promise<Calibration> {
 export async function saveCalibration(values: Calibration) {
   return supabase.from("sensor_calibration").upsert({ id: "default", ...values, updated_at: new Date().toISOString() });
 }
+
+// Satu query buat banyak pasien sekaligus (dipakai di kartu roster), bukan N+1 per baris.
+// Ambil bacaan lig_raw TERAKHIR per session_id — bukan rata-rata, biar konsisten
+// dengan "current" di tempat lain (mobile app, detail modal pakai rata-rata 20 log).
+export async function fetchLatestLigForSessions(sessionIds: string[]): Promise<Record<string, number>> {
+  const uniqueIds = [...new Set(sessionIds)];
+  if (uniqueIds.length === 0) return {};
+
+  const { data } = await supabase
+    .from("sensor_logs")
+    .select("session_id, lig_raw, timestamp")
+    .in("session_id", uniqueIds)
+    .order("timestamp", { ascending: false });
+
+  const result: Record<string, number> = {};
+  for (const row of (data as { session_id: string; lig_raw: number }[] | null) ?? []) {
+    if (!(row.session_id in result)) result[row.session_id] = row.lig_raw; // baris pertama per sesi = terbaru
+  }
+  return result;
+}

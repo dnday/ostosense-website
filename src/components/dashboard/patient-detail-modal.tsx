@@ -5,7 +5,11 @@ import { Chart } from "@/components/ui/chart";
 import { supabase } from "@/lib/supabase";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPrediction, formatPrediction, type AiPredictionInfo } from "@/lib/ai-prediction";
+import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
 import type { Patient } from "@/types/patient";
+
+const SKIN_INTEGRITY_WARNING_BELOW = 50;
+const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 const historyEntries = [
   { label: "Kantong diganti", time: "08:15", dot: "bg-emerald-500" },
@@ -28,8 +32,10 @@ export function PatientDetailModal({
   const [logs, setLogs] = useState<SensorLog[]>([]);
   const [handled, setHandled] = useState(false);
   const [prediction, setPrediction] = useState<AiPredictionInfo>(formatPrediction(null));
+  const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
 
   useEffect(() => {
+    fetchCalibration().then(setCalibration);
     const sessionId = getPatientSessionId(patient.name);
     if (!sessionId) {
       setLogs([]);
@@ -52,11 +58,13 @@ export function PatientDetailModal({
   const critical = prediction.tier === "urgent";
   const warning = prediction.tier === "warning";
 
-  const avgMoisture = logs.length
-    ? Math.round(logs.reduce((sum, log) => sum + (log.capacitance_raw ?? 0), 0) / logs.length)
-    : null;
+  // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
+  // kapasitif kantong. Tidak ada sensor kelembaban kulit terpisah di hardware ini.
   const avgResistance = logs.length
     ? Math.round(logs.reduce((sum, log) => sum + (log.lig_raw ?? 0), 0) / logs.length)
+    : null;
+  const avgSkinIntegrity = logs.length
+    ? clamp(((avgResistance! - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
     : null;
 
   return (
@@ -141,10 +149,14 @@ export function PatientDetailModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
-              <p className="text-sm text-slate-500">Kelembaban Rata-rata</p>
-              <p className="mt-1 text-[28px] text-slate-900">{avgMoisture !== null ? `${avgMoisture}%` : "—"}</p>
+              <p className="text-sm text-slate-500">Integritas Kulit</p>
+              <p className="mt-1 text-[28px] text-slate-900">{avgSkinIntegrity !== null ? `${avgSkinIntegrity}%` : "—"}</p>
               <p className="mt-1 text-xs text-slate-400">
-                {avgMoisture !== null ? "Dalam rentang normal" : "Belum ada device terpasang"}
+                {avgSkinIntegrity === null
+                  ? "Belum ada device terpasang"
+                  : avgSkinIntegrity >= SKIN_INTEGRITY_WARNING_BELOW
+                    ? "Integritas baik"
+                    : "Perlu diperiksa"}
               </p>
             </div>
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">

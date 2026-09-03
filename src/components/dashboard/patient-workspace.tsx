@@ -8,8 +8,11 @@ import { PatientRow } from "@/components/ui/patient-row";
 import { clinicalNotes } from "@/data/clinical-notes";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
+import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
+
+const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 export function PatientWorkspace({
   rosterPatients,
@@ -25,6 +28,11 @@ export function PatientWorkspace({
   const [logs, setLogs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
+  const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
+
+  useEffect(() => {
+    fetchCalibration().then(setCalibration);
+  }, []);
 
   useEffect(() => {
     const sessionId = getPatientSessionId(selectedName);
@@ -78,6 +86,16 @@ export function PatientWorkspace({
   const selectedPrediction = predictionForName(selectedName);
   const isCritical = selectedPrediction.tier === "urgent";
   const isWarning = selectedPrediction.tier === "warning";
+
+  // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
+  // kapasitif kantong. Jatuh balik ke kolom `skin` statis kalau belum ada log sensor.
+  const avgLig = logs.length
+    ? logs.reduce((sum: number, log: any) => sum + (log.lig_raw ?? 0), 0) / logs.length
+    : null;
+  const skinIntegrity =
+    avgLig !== null
+      ? clamp(((avgLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
+      : selectedPatient.skin;
 
   const filteredRoster = rosterPatients.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -234,7 +252,7 @@ export function PatientWorkspace({
                   <MetricCard
                     icon="heart"
                     label="Integritas Kulit"
-                    value={selectedPatient.skin}
+                    value={skinIntegrity}
                     color="purple"
                   />
                 </div>
