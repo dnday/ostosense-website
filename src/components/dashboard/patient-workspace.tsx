@@ -6,7 +6,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { MonitoringCard } from "@/components/ui/monitoring-card";
 import { PatientRow } from "@/components/ui/patient-row";
 import { clinicalNotes } from "@/data/clinical-notes";
-import { DEMO_DEVICE_PATIENT_NAME, getPatientDetailCardBorderClass } from "@/lib/patient";
+import { getPatientDetailCardBorderClass, getPatientSessionId } from "@/lib/patient";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 
@@ -25,9 +25,8 @@ export function PatientWorkspace({
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // Cuma satu ESP32 fisik yang tersambung sekarang, dipasang ke DEMO_DEVICE_PATIENT_NAME.
-    // Pasien lain di roster belum punya device, jangan nampilin data sensor siapa pun buat mereka.
-    if (selectedName !== DEMO_DEVICE_PATIENT_NAME) {
+    const sessionId = getPatientSessionId(selectedName);
+    if (!sessionId) {
       setLogs([]);
       return;
     }
@@ -36,6 +35,7 @@ export function PatientWorkspace({
       const { data } = await supabase
         .from('sensor_logs')
         .select('*')
+        .eq('session_id', sessionId)
         .order('timestamp', { ascending: false })
         .limit(20);
       if (data) {
@@ -45,10 +45,10 @@ export function PatientWorkspace({
     fetchLogs();
 
     const channel = supabase
-      .channel('public:sensor_logs')
+      .channel(`public:sensor_logs:${sessionId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'sensor_logs' },
+        { event: 'INSERT', schema: 'public', table: 'sensor_logs', filter: `session_id=eq.${sessionId}` },
         (payload) => {
           setLogs((prev) => [...prev, payload.new].slice(-20)); // Keep last 20
         }

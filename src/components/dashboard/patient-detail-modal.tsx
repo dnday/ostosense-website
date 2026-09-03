@@ -3,7 +3,7 @@ import { AlertTriangle, Droplets, Waves, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Chart } from "@/components/ui/chart";
 import { supabase } from "@/lib/supabase";
-import { DEMO_DEVICE_PATIENT_NAME, isUrgentPatient, isWarningPatient } from "@/lib/patient";
+import { getPatientSessionId, isUrgentPatient, isWarningPatient } from "@/lib/patient";
 import type { Patient } from "@/types/patient";
 
 const historyEntries = [
@@ -28,8 +28,8 @@ export function PatientDetailModal({
   const [handled, setHandled] = useState(false);
 
   useEffect(() => {
-    // Cuma satu ESP32 fisik yang tersambung sekarang, lihat DEMO_DEVICE_PATIENT_NAME.
-    if (patient.name !== DEMO_DEVICE_PATIENT_NAME) {
+    const sessionId = getPatientSessionId(patient.name);
+    if (!sessionId) {
       setLogs([]);
       return;
     }
@@ -37,6 +37,7 @@ export function PatientDetailModal({
       const { data } = await supabase
         .from("sensor_logs")
         .select("*")
+        .eq("session_id", sessionId)
         .order("timestamp", { ascending: false })
         .limit(20);
       if (data) setLogs(data.reverse());

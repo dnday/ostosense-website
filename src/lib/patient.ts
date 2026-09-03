@@ -1,9 +1,19 @@
 import type { Patient } from "@/types/patient";
 
-// ponytail: satu ESP32 fisik saat ini, jadi cuma 1 pasien yang punya data sensor beneran.
-// `sensor_logs` belum ada patient_id/device_id, upgrade ke filter per-pasien saat ada >1 device.
-// Namanya HARUS persis sama dengan baris nyata di tabel `patients` (bukan data mock/fallback).
-export const DEMO_DEVICE_PATIENT_NAME = "Pasien Uji Coba";
+// ponytail: `patients` belum punya kolom session_id/device_id sungguhan (satu ESP32
+// fisik + beberapa sesi demo di-map manual di sini). Pindah ke kolom DB kalau device
+// fisik sudah lebih dari satu.
+const PATIENT_SESSION_IDS: Record<string, string> = {
+  "Pasien Uji Coba": "ESP32_ASLI_01", // device fisik asli
+  "John Martinez": "DEMO_JOHN_MARTINEZ",
+  "Emily Johnson": "DEMO_EMILY_JOHNSON",
+  "Michael Chen": "DEMO_MICHAEL_CHEN",
+  "Sarah Williams": "DEMO_SARAH_WILLIAMS",
+};
+
+export function getPatientSessionId(patientName: string): string | null {
+  return PATIENT_SESSION_IDS[patientName] ?? null;
+}
 
 export function isUrgentPatient(patient: Patient) {
   return (patient.risk ?? 0) >= 80;
