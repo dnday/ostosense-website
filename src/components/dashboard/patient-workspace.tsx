@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Search, Users, ArrowDownUp, AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Search, Users, ArrowDownUp, AlertCircle, AlertTriangle, CheckCircle2, HelpCircle } from "lucide-react";
 import { CareBadge } from "@/components/ui/care-badge";
 import { Icon } from "@/components/ui/icon";
 import { MetricCard } from "@/components/ui/metric-card";
 import { MonitoringCard } from "@/components/ui/monitoring-card";
 import { PatientRow } from "@/components/ui/patient-row";
 import { clinicalNotes } from "@/data/clinical-notes";
-import { getPatientDetailCardBorderClass, getPatientSessionId } from "@/lib/patient";
+import { getPatientSessionId } from "@/lib/patient";
+import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 
@@ -23,6 +24,7 @@ export function PatientWorkspace({
 }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
 
   useEffect(() => {
     const sessionId = getPatientSessionId(selectedName);
@@ -60,12 +62,25 @@ export function PatientWorkspace({
     };
   }, [selectedName]);
 
-  const risk = selectedPatient?.risk ?? 35;
-  const isCritical = risk >= 80;
-  const isWarning = risk >= 50 && risk < 80;
+  // Satu query buat semua pasien di roster (bukan N+1) — lihat src/lib/ai-prediction.ts.
+  useEffect(() => {
+    const sessionIds = rosterPatients
+      .map((p) => getPatientSessionId(p.name))
+      .filter((id): id is string => id !== null);
+    fetchLatestPredictionsForSessions(sessionIds).then(setPredictions);
+  }, [rosterPatients]);
 
-  const filteredRoster = rosterPatients.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const predictionForName = (name: string) => {
+    const sessionId = getPatientSessionId(name);
+    return formatPrediction(sessionId ? predictions[sessionId] ?? null : null);
+  };
+
+  const selectedPrediction = predictionForName(selectedName);
+  const isCritical = selectedPrediction.tier === "urgent";
+  const isWarning = selectedPrediction.tier === "warning";
+
+  const filteredRoster = rosterPatients.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -88,7 +103,7 @@ export function PatientWorkspace({
                 </div>
                 <div className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
                   <ArrowDownUp size={12} className="text-slate-400" />
-                  Urut: Risiko
+                  Urut: Nama
                 </div>
               </div>
             </div>
@@ -123,14 +138,19 @@ export function PatientWorkspace({
                 <p className="text-sm font-medium text-slate-500">Pasien tidak ditemukan</p>
               </div>
             ) : (
-              filteredRoster.map((patient) => (
-                <PatientRow
-                  key={patient.name}
-                  patient={patient}
-                  selected={selectedName === patient.name}
-                  onSelect={() => onSelectPatient(patient.name)}
-                />
-              ))
+              filteredRoster.map((patient) => {
+                const prediction = predictionForName(patient.name);
+                return (
+                  <PatientRow
+                    key={patient.name}
+                    patient={patient}
+                    tier={prediction.tier}
+                    predictionLabel={prediction.label}
+                    selected={selectedName === patient.name}
+                    onSelect={() => onSelectPatient(patient.name)}
+                  />
+                );
+              })
             )}
           </div>
         </section>
@@ -185,24 +205,26 @@ export function PatientWorkspace({
                       <p className="mt-0.5 text-[13px] text-amber-600/80">Perhatikan tren perubahan cairan</p>
                     </div>
                   </div>
+                ) : selectedPrediction.tier === "unknown" ? (
+                  <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-slate-400 bg-slate-50 px-4 py-3.5">
+                    <HelpCircle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                    <div>
+                      <h4 className="text-[14px] font-semibold text-slate-600">AI belum tersedia</h4>
+                      <p className="mt-0.5 text-[13px] text-slate-500">Belum ada klasifikasi risiko untuk pasien ini</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-emerald-500 bg-emerald-50/50 px-4 py-3.5">
                     <CheckCircle2 strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                     <div>
                       <h4 className="text-[14px] font-semibold text-emerald-700">Status Normal</h4>
-                      <p className="mt-0.5 text-[13px] text-emerald-600/80">Tidak ada risiko kebocoran terdeteksi</p>
+                      <p className="mt-0.5 text-[13px] text-emerald-600/80">{selectedPrediction.label}</p>
                     </div>
                   </div>
                 )}
               </header>
               <div className="space-y-5 p-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <MetricCard
-                    icon="pulse"
-                    label="Risiko Kebocoran"
-                    value={risk}
-                    color={isCritical ? "rose" : isWarning ? "amber" : "blue"}
-                  />
+                <div className="grid grid-cols-2 gap-4">
                   <MetricCard
                     icon="drop"
                     label="Level Kantong"
@@ -217,7 +239,7 @@ export function PatientWorkspace({
                   />
                 </div>
                 <MonitoringCard
-                  title="Kapasitansi Sensor (AI)"
+                  title="Kapasitansi Sensor"
                   subtitle="Mendeteksi perubahan volume"
                   kind="moisture"
                   data={logs}

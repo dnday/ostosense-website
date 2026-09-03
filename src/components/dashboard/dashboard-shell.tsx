@@ -10,17 +10,16 @@ import { PatientWorkspace } from "@/components/dashboard/patient-workspace";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 import { ensureRole } from "@/lib/profile";
-// Fallback data if DB fails
-import { patients as fallbackPatients, rosterPatients as fallbackRoster } from "@/data/patients";
 
 function ShellContent({ children }: { children?: React.ReactNode }) {
   const searchParams = useSearchParams();
   const [view, setView] = useState<"home" | "patients">(searchParams.get("view") === "patients" ? "patients" : "home");
-  const [selectedName, setSelectedName] = useState(searchParams.get("patient") || "Thomas Brown");
-  
+  const [selectedName, setSelectedName] = useState(searchParams.get("patient") || "");
+
   // Realtime Supabase State
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
   const authRouter = useRouter();
@@ -55,12 +54,16 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
         .select('*')
         .order('risk', { ascending: false });
         
-      if (error || !data || data.length === 0) {
-        console.error("Gagal ambil data Supabase, pakai data fallback:", error);
-        setPatients(fallbackPatients);
+      if (error) {
+        // Jujur: gagal ambil data itu error, bukan alasan buat nampilin pasien buatan
+        // yang kelihatan seperti data nyata (lihat MUST FIX dashboard di kontrak AI).
+        console.error("Gagal ambil data pasien dari Supabase:", error);
+        setLoadError(true);
+        setPatients([]);
       } else {
+        setLoadError(false);
         // Map from DB format to our Patient type
-        const mappedPatients: Patient[] = data.map((d: any) => ({
+        const mappedPatients: Patient[] = (data ?? []).map((d: any) => ({
           name: d.name,
           type: d.type === 'RS' ? 'inap' : 'jalan',
           location: d.location,
@@ -69,6 +72,11 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
           skin: d.skin
         }));
         setPatients(mappedPatients);
+        setSelectedName((current) =>
+          current && mappedPatients.some((p) => p.name === current)
+            ? current
+            : mappedPatients[0]?.name ?? "",
+        );
       }
       setIsLoading(false);
     };
@@ -94,7 +102,7 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
   }, []);
 
   // Compute selected patient and roster
-  const selectedPatient = patients.find((patient) => patient.name === selectedName) ?? (patients.length > 0 ? patients[0] : fallbackPatients[0]);
+  const selectedPatient = patients.find((patient) => patient.name === selectedName) ?? patients[0];
   const rosterPatients = patients;
 
   const router = useRouter();
@@ -135,15 +143,26 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
 
         {children ? (
           <div className="flex-1 overflow-auto">{children}</div>
+        ) : loadError ? (
+          <div className="flex flex-1 items-center justify-center p-8 text-center">
+            <div>
+              <p className="text-sm font-medium text-rose-600">Gagal memuat data pasien</p>
+              <p className="mt-1 text-xs text-slate-400">Coba muat ulang halaman ini.</p>
+            </div>
+          </div>
         ) : view === "home" ? (
           <DashboardHome patients={patients} />
-        ) : (
+        ) : selectedPatient ? (
           <PatientWorkspace
             rosterPatients={rosterPatients}
             selectedPatient={selectedPatient}
             selectedName={selectedName}
             onSelectPatient={openPatient}
           />
+        ) : (
+          <div className="flex flex-1 items-center justify-center p-8 text-center">
+            <p className="text-sm font-medium text-slate-500">Belum ada pasien.</p>
+          </div>
         )}
       </div>
     </main>

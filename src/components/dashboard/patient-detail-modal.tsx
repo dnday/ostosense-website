@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Droplets, Waves, X } from "lucide-react";
+import { AlertTriangle, Droplets, HelpCircle, Waves, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Chart } from "@/components/ui/chart";
 import { supabase } from "@/lib/supabase";
-import { getPatientSessionId, isUrgentPatient, isWarningPatient } from "@/lib/patient";
+import { getPatientSessionId } from "@/lib/patient";
+import { fetchLatestPrediction, formatPrediction, type AiPredictionInfo } from "@/lib/ai-prediction";
 import type { Patient } from "@/types/patient";
 
 const historyEntries = [
@@ -26,11 +27,13 @@ export function PatientDetailModal({
 }) {
   const [logs, setLogs] = useState<SensorLog[]>([]);
   const [handled, setHandled] = useState(false);
+  const [prediction, setPrediction] = useState<AiPredictionInfo>(formatPrediction(null));
 
   useEffect(() => {
     const sessionId = getPatientSessionId(patient.name);
     if (!sessionId) {
       setLogs([]);
+      setPrediction(formatPrediction(null));
       return;
     }
     const fetchLogs = async () => {
@@ -43,11 +46,11 @@ export function PatientDetailModal({
       if (data) setLogs(data.reverse());
     };
     fetchLogs();
+    fetchLatestPrediction(sessionId).then((row) => setPrediction(formatPrediction(row)));
   }, [patient.name]);
 
-  const risk = patient.risk ?? 0;
-  const critical = isUrgentPatient(patient);
-  const warning = isWarningPatient(patient);
+  const critical = prediction.tier === "urgent";
+  const warning = prediction.tier === "warning";
 
   const avgMoisture = logs.length
     ? Math.round(logs.reduce((sum, log) => sum + (log.capacitance_raw ?? 0), 0) / logs.length)
@@ -106,15 +109,21 @@ export function PatientDetailModal({
                 <div
                   className={`grid size-10 shrink-0 place-items-center rounded-full ${critical ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"}`}
                 >
-                  <AlertTriangle size={20} strokeWidth={1.5} />
+                  {prediction.tier === "unknown" ? (
+                    <HelpCircle size={20} strokeWidth={1.5} />
+                  ) : (
+                    <AlertTriangle size={20} strokeWidth={1.5} />
+                  )}
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">Risiko Kebocoran</p>
-                  <p className={`text-2xl ${critical ? "text-rose-600" : "text-slate-900"}`}>{risk}%</p>
+                  <p className="text-sm text-slate-600">Klasifikasi AI</p>
+                  <p className={`text-base leading-tight ${critical ? "text-rose-600" : prediction.tier === "unknown" ? "text-slate-500" : "text-slate-900"}`}>
+                    {prediction.label}
+                  </p>
                 </div>
               </div>
               <p className={`mt-3 text-xs ${critical ? "text-rose-600" : "text-slate-400"}`}>
-                {critical ? "Perlu perhatian segera" : warning ? "Perlu dipantau" : "Dalam rentang aman"}
+                {critical ? "Perlu perhatian segera" : warning ? "Perlu dipantau" : prediction.tier === "unknown" ? "Belum ada klasifikasi risiko" : "Dalam rentang aman"}
               </p>
             </div>
           </div>

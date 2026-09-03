@@ -1,4 +1,4 @@
-import type { Patient } from "@/types/patient";
+import type { PredictionTier } from "@/lib/ai-prediction";
 
 // ponytail: `patients` belum punya kolom session_id/device_id sungguhan (satu ESP32
 // fisik + beberapa sesi demo di-map manual di sini). Pindah ke kolom DB kalau device
@@ -15,46 +15,19 @@ export function getPatientSessionId(patientName: string): string | null {
   return PATIENT_SESSION_IDS[patientName] ?? null;
 }
 
-export function isUrgentPatient(patient: Patient) {
-  return (patient.risk ?? 0) >= 80;
-}
-
-export function isWarningPatient(patient: Patient) {
-  const risk = patient.risk ?? 0;
-  return risk >= 50 && risk < 80;
-}
-
-export function getPatientToneClasses(patient: Patient) {
-  if (isUrgentPatient(patient)) {
-    return {
-      tone: "border-rose-300 bg-rose-50/50",
-      accent: "text-rose-600",
-    };
+// Urgensi tampilan sekarang bersumber dari kelas AI (lihat src/lib/ai-prediction.ts),
+// bukan dari ambang numerik Patient.risk — lihat OSTOSENSE-AI/docs/
+// ai-software-integration-contract-v0.2.md, MUST FIX #1 dashboard.
+export function getToneClassesForTier(tier: PredictionTier) {
+  if (tier === "urgent") {
+    return { tone: "border-rose-300 bg-rose-50/50", accent: "text-rose-600" };
   }
-
-  if (isWarningPatient(patient)) {
-    return {
-      tone: "border-amber-300 bg-amber-50/50",
-      accent: "text-amber-600",
-    };
+  if (tier === "warning") {
+    return { tone: "border-amber-300 bg-amber-50/50", accent: "text-amber-600" };
   }
-
-  return {
-    tone: "border-slate-200 bg-white",
-    accent: "text-emerald-500",
-  };
-}
-
-export function getPatientRiskBadgeClasses(patient: Patient) {
-  return isUrgentPatient(patient)
-    ? "bg-rose-100 text-rose-600"
-    : "bg-emerald-100 text-emerald-700";
-}
-
-export function getPatientLevelBarClass(patient: Patient) {
-  return isUrgentPatient(patient) ? "bg-orange-400" : "bg-[#1d2f4a]";
-}
-
-export function getPatientDetailCardBorderClass(patient: Patient) {
-  return isUrgentPatient(patient) ? "border-rose-400" : "border-slate-200";
+  if (tier === "normal") {
+    return { tone: "border-slate-200 bg-white", accent: "text-emerald-500" };
+  }
+  // unknown: belum ada prediksi AI sama sekali — bukan "aman", beda status.
+  return { tone: "border-slate-200 bg-white", accent: "text-slate-400" };
 }

@@ -1,18 +1,23 @@
 import { CareBadge } from "@/components/ui/care-badge";
 import { Icon } from "@/components/ui/icon";
-import { getPatientToneClasses } from "@/lib/patient";
+import { getToneClassesForTier } from "@/lib/patient";
+import type { PredictionTier } from "@/lib/ai-prediction";
 import type { Patient } from "@/types/patient";
 
 export function PatientRow({
   patient,
+  tier,
+  predictionLabel,
   selected,
   onSelect,
 }: {
   patient: Patient;
+  tier: PredictionTier;
+  predictionLabel: string;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const { tone, accent } = getPatientToneClasses(patient);
+  const { tone, accent } = getToneClassesForTier(tier);
 
   return (
     <button
@@ -35,12 +40,10 @@ export function PatientRow({
             {patient.location}
           </span>
         </span>
-        {patient.risk && (
-          <span className={`flex items-center gap-1.5 text-sm font-medium ${accent}`}>
-            <Icon name="alert" size={16} />
-            {patient.risk}%
-          </span>
-        )}
+        <span className={`flex items-center gap-1.5 text-right text-xs font-medium ${accent}`}>
+          {tier !== "unknown" && <Icon name="alert" size={16} />}
+          {predictionLabel}
+        </span>
       </span>
     </button>
   );

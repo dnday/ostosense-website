@@ -1,36 +1,57 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Users, AlertCircle, CheckCircle2, Activity, Building, Home } from "lucide-react";
 import type { Patient } from "@/types/patient";
 import { CareBadge } from "@/components/ui/care-badge";
 import { PatientDetailModal } from "@/components/dashboard/patient-detail-modal";
+import { getPatientSessionId } from "@/lib/patient";
+import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
 
 export function DashboardHome({
   patients,
 }: {
   patients: Patient[];
 }) {
+  const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
+
+  useEffect(() => {
+    const sessionIds = patients
+      .map((p) => getPatientSessionId(p.name))
+      .filter((id): id is string => id !== null);
+    fetchLatestPredictionsForSessions(sessionIds).then(setPredictions);
+  }, [patients]);
+
+  const tierForPatient = (patient: Patient) => {
+    const sessionId = getPatientSessionId(patient.name);
+    return formatPrediction(sessionId ? predictions[sessionId] ?? null : null).tier;
+  };
+
   const summary = useMemo(() => {
     const totalPatients = patients.length;
     const inap = patients.filter((p) => p.type === "inap").length;
     const jalan = totalPatients - inap;
 
-    const critical = patients.filter((p) => (p.risk ?? 0) >= 80).length;
-    const warning = patients.filter((p) => (p.risk ?? 0) >= 50 && (p.risk ?? 0) < 80).length;
-    
+    const critical = patients.filter((p) => tierForPatient(p) === "urgent").length;
+    const warning = patients.filter((p) => tierForPatient(p) === "warning").length;
+    const unavailable = patients.filter((p) => tierForPatient(p) === "unknown").length;
+
     let globalRisk = "Rendah";
     if (critical > 0) {
       globalRisk = "Tinggi";
     } else if (warning > 0) {
       globalRisk = "Sedang";
+    } else if (unavailable === totalPatients && totalPatients > 0) {
+      globalRisk = "Belum diketahui";
     }
 
     return {
       totalPatients,
       breakdown: { inap, jalan },
       actionNeeded: { total: critical + warning, critical, warning },
+      unavailable,
       globalRisk,
     };
-  }, [patients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patients, predictions]);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"Semua" | "Rawat Inap" | "Rawat Jalan">("Semua");
@@ -63,7 +84,7 @@ export function DashboardHome({
             {summary.breakdown.inap} Rawat Inap • {summary.breakdown.jalan} Rawat Jalan
           </p>
         </article>
-        
+
         <article className={`rounded-[14px] border bg-white p-6 shadow-sm ${summary.actionNeeded.total > 0 ? "border-orange-200 bg-orange-50/20" : "border-slate-200"}`}>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-500">Perlu Tindakan</span>
@@ -78,19 +99,20 @@ export function DashboardHome({
           </strong>
           <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-orange-600/80" : "text-slate-400"}`}>
             {summary.actionNeeded.critical} Kritis • {summary.actionNeeded.warning} Waspada
+            {summary.unavailable > 0 ? ` • ${summary.unavailable} AI belum tersedia` : ""}
           </p>
         </article>
-        
+
         <article className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-500">Rata-rata Risiko Unit</span>
-            <Activity className={`h-4 w-4 ${summary.globalRisk === "Tinggi" ? "text-rose-500" : summary.globalRisk === "Sedang" ? "text-amber-500" : "text-emerald-500"}`} />
+            <Activity className={`h-4 w-4 ${summary.globalRisk === "Tinggi" ? "text-rose-500" : summary.globalRisk === "Sedang" ? "text-amber-500" : summary.globalRisk === "Belum diketahui" ? "text-slate-400" : "text-emerald-500"}`} />
           </div>
-          <strong className={`mt-3 block text-3xl font-semibold ${summary.globalRisk === "Tinggi" ? "text-rose-600" : summary.globalRisk === "Sedang" ? "text-amber-600" : "text-slate-900"}`}>
+          <strong className={`mt-3 block text-3xl font-semibold ${summary.globalRisk === "Tinggi" ? "text-rose-600" : summary.globalRisk === "Sedang" ? "text-amber-600" : summary.globalRisk === "Belum diketahui" ? "text-slate-500" : "text-slate-900"}`}>
             {summary.globalRisk}
           </strong>
           <p className="mt-1 text-xs font-medium text-slate-400">
-            {summary.globalRisk === "Tinggi" ? "Unit dalam status kritis" : summary.globalRisk === "Sedang" ? "Unit perlu perhatian" : "Kondisi stabil"}
+            {summary.globalRisk === "Tinggi" ? "Unit dalam status kritis" : summary.globalRisk === "Sedang" ? "Unit perlu perhatian" : summary.globalRisk === "Belum diketahui" ? "Belum ada klasifikasi AI" : "Kondisi stabil"}
           </p>
         </article>
       </section>
@@ -98,7 +120,7 @@ export function DashboardHome({
       {/* Toolbar & Tabs Matches Design Mockup */}
       <div className="mt-10 mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-[22px] font-normal text-[#1d2f4a]">Pemantauan Pasien</h2>
-        
+
         <div className="inline-flex p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
           <button
             onClick={() => setActiveTab("Semua")}
@@ -108,7 +130,7 @@ export function DashboardHome({
           >
             Semua ({summary.totalPatients})
           </button>
-          
+
           <button
             onClick={() => setActiveTab("Rawat Inap")}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -118,7 +140,7 @@ export function DashboardHome({
             <Building size={16} className={activeTab === "Rawat Inap" ? "text-white" : "text-slate-400"} />
             Rawat Inap ({summary.breakdown.inap})
           </button>
-          
+
           <button
             onClick={() => setActiveTab("Rawat Jalan")}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -134,7 +156,9 @@ export function DashboardHome({
       <section className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {filteredPatients.length > 0 ? (
           filteredPatients.map((patient) => {
-            const high = (patient.risk ?? 0) >= 80;
+            const sessionId = getPatientSessionId(patient.name);
+            const prediction = formatPrediction(sessionId ? predictions[sessionId] ?? null : null);
+            const high = prediction.tier === "urgent";
 
             return (
               <article
@@ -148,7 +172,7 @@ export function DashboardHome({
                   </div>
                   <CareBadge type={patient.type} />
                 </div>
-                
+
                 <div className="mt-5 flex justify-between text-xs font-medium text-slate-500">
                   <span>Level Kantong</span>
                   <span className="text-slate-700">{patient.level}%</span>
@@ -159,18 +183,24 @@ export function DashboardHome({
                     style={{ width: `${patient.level}%` }}
                   />
                 </div>
-                
+
                 <div className="mt-4 flex items-center gap-2">
                   <span
-                    className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${high ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-500/20" : "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/10"}`}
+                    className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
+                      high
+                        ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-500/20"
+                        : prediction.tier === "unknown"
+                          ? "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-500/10"
+                          : "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/10"
+                    }`}
                   >
-                    {high ? "Risiko Tinggi" : "Stabil"}
+                    {prediction.label}
                   </span>
                   <span className="text-xs font-medium text-slate-400">
                     • Kulit: <span className={patient.skin < 60 ? "text-amber-600" : "text-slate-500"}>{patient.skin < 60 ? "Perhatian" : "Sehat"}</span>
                   </span>
                 </div>
-                
+
                 <button
                   onClick={() => setDetailPatient(patient)}
                   className="mt-5 flex w-full items-center justify-between border-t border-slate-100 pt-3 text-left text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
