@@ -88,13 +88,13 @@ export function PatientWorkspace({
   const isWarning = selectedPrediction.tier === "warning";
 
   // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
-  // kapasitif kantong. Jatuh balik ke kolom `skin` statis kalau belum ada log sensor.
-  const avgLig = logs.length
-    ? logs.reduce((sum: number, log: any) => sum + (log.lig_raw ?? 0), 0) / logs.length
-    : null;
+  // kapasitif kantong. Bacaan terakhir (bukan rata-rata) biar konsisten dengan mobile
+  // app & backend (use-sensor-series.ts, sensor.service.ts). Jatuh balik ke kolom
+  // `skin` statis kalau belum ada log sensor.
+  const lastLig = logs.length ? logs[logs.length - 1].lig_raw : null;
   const skinIntegrity =
-    avgLig !== null
-      ? clamp(((avgLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
+    lastLig != null
+      ? clamp(((lastLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
       : selectedPatient.skin;
 
   // Level volume kantong dari sensor kapasitif (bacaan terakhir, sama dengan mobile

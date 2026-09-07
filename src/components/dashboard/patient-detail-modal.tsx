@@ -63,17 +63,19 @@ export function PatientDetailModal({
 
   // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
   // kapasitif kantong. Tidak ada sensor kelembaban kulit terpisah di hardware ini.
-  const avgResistance = logs.length
-    ? Math.round(logs.reduce((sum, log) => sum + (log.lig_raw ?? 0), 0) / logs.length)
-    : null;
-  const avgSkinIntegrity = logs.length
-    ? clamp(((avgResistance! - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
-    : null;
-
   // Kap_4/Kap_5/Res_16 — channel yang direkam hardware tapi belum ada makna/kalibrasi
   // produk sendiri (Kap_7 dikunci sebagai kanal kapasitif utama). Ditampilkan mentah
   // sebagai diagnostik, bukan metrik dengan threshold seperti kulit/volume.
   const last = logs[logs.length - 1];
+
+  // Bacaan terakhir (bukan rata-rata) biar konsisten dengan mobile app & backend
+  // (use-sensor-series.ts, sensor.service.ts) dan dengan diagnostik raw di bawah,
+  // yang juga dari `last`.
+  const lastResistance = last?.lig_raw ?? null;
+  const lastSkinIntegrity =
+    lastResistance !== null
+      ? clamp(((lastResistance - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
+      : null;
 
   // Level volume kantong dari bacaan kapasitif terakhir (sama dengan mobile app) —
   // bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
@@ -165,20 +167,20 @@ export function PatientDetailModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Integritas Kulit</p>
-              <p className="mt-1 text-[28px] text-slate-900">{avgSkinIntegrity !== null ? `${avgSkinIntegrity}%` : "—"}</p>
+              <p className="mt-1 text-[28px] text-slate-900">{lastSkinIntegrity !== null ? `${lastSkinIntegrity}%` : "—"}</p>
               <p className="mt-1 text-xs text-slate-400">
-                {avgSkinIntegrity === null
+                {lastSkinIntegrity === null
                   ? "Belum ada device terpasang"
-                  : avgSkinIntegrity >= SKIN_INTEGRITY_WARNING_BELOW
+                  : lastSkinIntegrity >= SKIN_INTEGRITY_WARNING_BELOW
                     ? "Integritas baik"
                     : "Perlu diperiksa"}
               </p>
             </div>
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Resistansi LIG</p>
-              <p className="mt-1 text-[28px] text-slate-900">{avgResistance !== null ? `${avgResistance}Ω` : "—"}</p>
+              <p className="mt-1 text-[28px] text-slate-900">{lastResistance !== null ? `${lastResistance}Ω` : "—"}</p>
               <p className="mt-1 text-xs text-slate-400">
-                {avgResistance !== null ? "Sensor berfungsi baik" : "Belum ada device terpasang"}
+                {lastResistance !== null ? "Sensor berfungsi baik" : "Belum ada device terpasang"}
               </p>
             </div>
           </div>
