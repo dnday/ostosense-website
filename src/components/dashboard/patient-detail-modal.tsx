@@ -20,6 +20,9 @@ type SensorLog = {
   timestamp: string;
   capacitance_raw?: number;
   lig_raw?: number;
+  res_16_raw?: number;
+  kap_4_raw?: number;
+  kap_5_raw?: number;
 };
 
 export function PatientDetailModal({
@@ -66,6 +69,11 @@ export function PatientDetailModal({
   const avgSkinIntegrity = logs.length
     ? clamp(((avgResistance! - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
     : null;
+
+  // Kap_4/Kap_5/Res_16 — channel yang direkam hardware tapi belum ada makna/kalibrasi
+  // produk sendiri (Kap_7 dikunci sebagai kanal kapasitif utama). Ditampilkan mentah
+  // sebagai diagnostik, bukan metrik dengan threshold seperti kulit/volume.
+  const last = logs[logs.length - 1];
 
   return (
     <div
@@ -167,6 +175,26 @@ export function PatientDetailModal({
               </p>
             </div>
           </div>
+
+          {last && (
+            <section className="rounded-[14px] border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Diagnostik Sensor (mentah)</p>
+              <div className="mt-2 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-[11px] text-slate-400">Res_16 (LIG cadangan)</p>
+                  <p className="text-sm font-semibold text-slate-700">{last.res_16_raw ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400">Kap_4</p>
+                  <p className="text-sm font-semibold text-slate-700">{last.kap_4_raw ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400">Kap_5</p>
+                  <p className="text-sm font-semibold text-slate-700">{last.kap_5_raw ?? "—"}</p>
+                </div>
+              </div>
+            </section>
+          )}
 
           {!handled && (critical || warning) && (
             <section className="rounded-[14px] border border-amber-200 bg-amber-50 p-5">
