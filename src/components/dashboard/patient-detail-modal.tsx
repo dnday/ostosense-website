@@ -9,6 +9,7 @@ import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/c
 import type { Patient } from "@/types/patient";
 
 const SKIN_INTEGRITY_WARNING_BELOW = 50;
+const LIG_SMOOTH_WINDOW = 5;
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 const historyEntries = [
@@ -87,10 +88,14 @@ export function PatientDetailModal({
   // sebagai diagnostik, bukan metrik dengan threshold seperti kulit/volume.
   const last = logs[logs.length - 1];
 
-  // Bacaan terakhir (bukan rata-rata) biar konsisten dengan mobile app & backend
-  // (use-sensor-series.ts, sensor.service.ts) dan dengan diagnostik raw di bawah,
-  // yang juga dari `last`.
-  const lastResistance = last?.lig_raw ?? null;
+  // lig_raw sample-per-sample sangat berisik (data pilot: lompat 1 -> 1194 -> 3
+  // antar sample berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW sample terakhir,
+  // konsisten dengan mobile app & backend (use-sensor-series.ts, sensor.service.ts).
+  // Diagnostik raw di bawah tetap pakai `last` mentah — memang dilabeli "mentah".
+  const recentLig = logs.slice(-LIG_SMOOTH_WINDOW);
+  const lastResistance = recentLig.length
+    ? Math.round(recentLig.reduce((sum, log) => sum + (log.lig_raw ?? 0), 0) / recentLig.length)
+    : null;
   const lastSkinIntegrity =
     lastResistance !== null
       ? clamp(((lastResistance - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)

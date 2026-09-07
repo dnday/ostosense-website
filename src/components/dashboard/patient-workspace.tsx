@@ -13,6 +13,7 @@ import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+const LIG_SMOOTH_WINDOW = 5;
 
 export function PatientWorkspace({
   rosterPatients,
@@ -88,13 +89,17 @@ export function PatientWorkspace({
   const isWarning = selectedPrediction.tier === "warning";
 
   // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
-  // kapasitif kantong. Bacaan terakhir (bukan rata-rata) biar konsisten dengan mobile
-  // app & backend (use-sensor-series.ts, sensor.service.ts). Jatuh balik ke kolom
-  // `skin` statis kalau belum ada log sensor.
-  const lastLig = logs.length ? logs[logs.length - 1].lig_raw : null;
+  // kapasitif kantong. lig_raw sample-per-sample sangat berisik (data pilot: lompat
+  // 1 -> 1194 -> 3 antar sample berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW
+  // sample terakhir, konsisten dengan mobile app & backend (use-sensor-series.ts,
+  // sensor.service.ts). Jatuh balik ke kolom `skin` statis kalau belum ada log sensor.
+  const recentLig = logs.slice(-LIG_SMOOTH_WINDOW);
+  const avgLig = recentLig.length
+    ? recentLig.reduce((sum: number, log: any) => sum + (log.lig_raw ?? 0), 0) / recentLig.length
+    : null;
   const skinIntegrity =
-    lastLig != null
-      ? clamp(((lastLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
+    avgLig != null
+      ? clamp(((avgLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
       : selectedPatient.skin;
 
   // Level volume kantong dari sensor kapasitif (bacaan terakhir, sama dengan mobile

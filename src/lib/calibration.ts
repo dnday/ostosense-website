@@ -30,9 +30,12 @@ export async function saveCalibration(values: Calibration) {
   return supabase.from("sensor_calibration").upsert({ id: "default", ...values, updated_at: new Date().toISOString() });
 }
 
+const LIG_SMOOTH_WINDOW = 5;
+
 // Satu query buat banyak pasien sekaligus (dipakai di kartu roster), bukan N+1 per baris.
-// Ambil bacaan lig_raw TERAKHIR per session_id — bukan rata-rata, biar konsisten
-// dengan "current" di tempat lain (mobile app, detail modal pakai rata-rata 20 log).
+// lig_raw sample-per-sample sangat berisik (data pilot: lompat 1 -> 1194 -> 3 antar
+// sample berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW bacaan terakhir per
+// session_id, konsisten dengan "current" di tempat lain (mobile app, detail modal).
 export async function fetchLatestLigForSessions(sessionIds: string[]): Promise<Record<string, number>> {
   const uniqueIds = [...new Set(sessionIds)];
   if (uniqueIds.length === 0) return {};
@@ -41,11 +44,21 @@ export async function fetchLatestLigForSessions(sessionIds: string[]): Promise<R
     .from("sensor_logs")
     .select("session_id, lig_raw, timestamp")
     .in("session_id", uniqueIds)
-    .order("timestamp", { ascending: false });
+    .order("timestamp", { ascending: false })
+    .limit(uniqueIds.length * LIG_SMOOTH_WINDOW * 4); // buffer, urutan campur antar sesi
+
+  const bySession = new Map<string, number[]>();
+  for (const row of (data as { session_id: string; lig_raw: number }[] | null) ?? []) {
+    const bucket = bySession.get(row.session_id) ?? [];
+    if (bucket.length < LIG_SMOOTH_WINDOW) {
+      bucket.push(row.lig_raw); // baris terdepan per sesi = paling baru (query di-sort desc)
+      bySession.set(row.session_id, bucket);
+    }
+  }
 
   const result: Record<string, number> = {};
-  for (const row of (data as { session_id: string; lig_raw: number }[] | null) ?? []) {
-    if (!(row.session_id in result)) result[row.session_id] = row.lig_raw; // baris pertama per sesi = terbaru
+  for (const [sessionId, values] of bySession) {
+    result[sessionId] = values.reduce((sum, v) => sum + v, 0) / values.length;
   }
   return result;
 }
