@@ -75,6 +75,13 @@ export function PatientDetailModal({
   // sebagai diagnostik, bukan metrik dengan threshold seperti kulit/volume.
   const last = logs[logs.length - 1];
 
+  // Level volume kantong dari bacaan kapasitif terakhir (sama dengan mobile app) —
+  // bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
+  const bagLevel =
+    last?.capacitance_raw != null
+      ? clamp(((last.capacitance_raw - calibration.cap_empty) / (calibration.cap_full - calibration.cap_empty)) * 100)
+      : patient.level;
+
   return (
     <div
       className="fixed inset-0 z-30 flex justify-end bg-black/20 backdrop-blur-[3px]"
@@ -107,13 +114,13 @@ export function PatientDetailModal({
                 </div>
                 <div>
                   <p className="text-sm text-slate-600">Level Kantong</p>
-                  <p className="text-2xl text-slate-900">{patient.level}%</p>
+                  <p className="text-2xl text-slate-900">{bagLevel}%</p>
                 </div>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-blue-100">
                 <i
                   className="block h-full rounded-full bg-blue-500"
-                  style={{ width: `${patient.level}%` }}
+                  style={{ width: `${bagLevel}%` }}
                 />
               </div>
             </div>
