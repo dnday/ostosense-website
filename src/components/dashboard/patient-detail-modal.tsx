@@ -56,6 +56,25 @@ export function PatientDetailModal({
     };
     fetchLogs();
     fetchLatestPrediction(sessionId).then((row) => setPrediction(formatPrediction(row)));
+
+    // Modal ini sebelumnya cuma fetch sekali pas dibuka lalu diam — sensor terus
+    // ngirim data (device kirim tiap ~1 detik) tapi layar gak pernah update sampai
+    // modal ditutup-buka lagi. Sama seperti roster (patient-workspace.tsx): dengarkan
+    // INSERT baru lewat Supabase Realtime.
+    const channel = supabase
+      .channel(`patient-detail:${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "sensor_logs", filter: `session_id=eq.${sessionId}` },
+        (payload) => {
+          setLogs((prev) => [...prev, payload.new as SensorLog].slice(-20));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [patient.name]);
 
   const critical = prediction.tier === "urgent";
