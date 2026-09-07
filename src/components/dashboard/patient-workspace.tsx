@@ -97,6 +97,14 @@ export function PatientWorkspace({
       ? clamp(((avgLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
       : selectedPatient.skin;
 
+  // Level volume kantong dari sensor kapasitif (bacaan terakhir, sama dengan mobile
+  // app) — bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
+  const lastCap = logs.length ? logs[logs.length - 1].capacitance_raw : null;
+  const bagLevel =
+    lastCap != null
+      ? clamp(((lastCap - calibration.cap_empty) / (calibration.cap_full - calibration.cap_empty)) * 100)
+      : selectedPatient.level;
+
   const filteredRoster = rosterPatients.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.location.toLowerCase().includes(searchQuery.toLowerCase())
@@ -246,7 +254,7 @@ export function PatientWorkspace({
                   <MetricCard
                     icon="drop"
                     label="Level Kantong"
-                    value={selectedPatient.level}
+                    value={bagLevel}
                     color="blue"
                   />
                   <MetricCard
