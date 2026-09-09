@@ -8,7 +8,6 @@ import { fetchLatestPrediction, formatPrediction, type AiPredictionInfo } from "
 import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
 import type { Patient } from "@/types/patient";
 
-const SKIN_INTEGRITY_WARNING_BELOW = 50;
 const LIG_SMOOTH_WINDOW = 5;
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -92,14 +91,13 @@ export function PatientDetailModal({
   // antar sample berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW sample terakhir,
   // konsisten dengan mobile app & backend (use-sensor-series.ts, sensor.service.ts).
   // Diagnostik raw di bawah tetap pakai `last` mentah — memang dilabeli "mentah".
+  // Ditampilkan sebagai bacaan mentah (Ω) saja — TIDAK dikonversi jadi persentase
+  // "integritas kulit": rumus lig_base/lig_dead itu kalibrasi linear 2-titik dari
+  // data pilot internal, belum ada dasar biofisika/klinis tervalidasi.
   const recentLig = logs.slice(-LIG_SMOOTH_WINDOW);
   const lastResistance = recentLig.length
     ? Math.round(recentLig.reduce((sum, log) => sum + (log.lig_raw ?? 0), 0) / recentLig.length)
     : null;
-  const lastSkinIntegrity =
-    lastResistance !== null
-      ? clamp(((lastResistance - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
-      : null;
 
   // Level volume kantong dari bacaan kapasitif terakhir (sama dengan mobile app) —
   // bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
@@ -181,25 +179,14 @@ export function PatientDetailModal({
             <div className="flex items-center gap-3">
               <Waves size={20} strokeWidth={1.5} className="text-slate-500" />
               <div>
-                <h3 className="text-[18px] font-normal text-slate-900">Analisis Hidrokoloid LIG</h3>
-                <p className="text-sm text-slate-500">Pemantauan 24 jam terakhir</p>
+                <h3 className="text-[18px] font-normal text-slate-900">Bacaan Sensor LIG (mentah)</h3>
+                <p className="text-sm text-slate-500">Belum ada interpretasi klinis tervalidasi — lihat OSTOSENSE-AI</p>
               </div>
             </div>
             <Chart kind="resistance" data={logs} />
           </section>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-[14px] border border-slate-100 bg-white p-4">
-              <p className="text-sm text-slate-500">Integritas Kulit</p>
-              <p className="mt-1 text-[28px] text-slate-900">{lastSkinIntegrity !== null ? `${lastSkinIntegrity}%` : "—"}</p>
-              <p className="mt-1 text-xs text-slate-400">
-                {lastSkinIntegrity === null
-                  ? "Belum ada device terpasang"
-                  : lastSkinIntegrity >= SKIN_INTEGRITY_WARNING_BELOW
-                    ? "Integritas baik"
-                    : "Perlu diperiksa"}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Resistansi LIG</p>
               <p className="mt-1 text-[28px] text-slate-900">{lastResistance !== null ? `${lastResistance}Ω` : "—"}</p>

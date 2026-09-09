@@ -128,7 +128,7 @@ export default function SettingsPage() {
             <h2 className="text-sm font-semibold text-slate-900">Kalibrasi Sensor</h2>
           </div>
           <p className="-mt-2 text-xs text-slate-500">
-            Nilai mentah sensor (capacitance/LIG) yang dipetakan ke persentase di grafik. Sesuaikan setelah kalibrasi ulang sensor fisik.
+            Nilai mentah sensor kapasitansi yang dipetakan ke persentase di grafik. Sesuaikan setelah kalibrasi ulang sensor fisik.
           </p>
 
           <div className="grid grid-cols-2 gap-4">
@@ -147,24 +147,6 @@ export default function SettingsPage() {
                 type="number"
                 value={calibration.cap_full}
                 onChange={(e) => setCalibrationField("cap_full", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">LIG Baseline (raw, sehat)</label>
-              <input
-                type="number"
-                value={calibration.lig_base}
-                onChange={(e) => setCalibrationField("lig_base", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">LIG Mati (raw, degradasi total)</label>
-              <input
-                type="number"
-                value={calibration.lig_dead}
-                onChange={(e) => setCalibrationField("lig_dead", e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
               />
             </div>

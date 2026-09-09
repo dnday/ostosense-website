@@ -90,10 +90,9 @@ function LoginForm() {
         </div>
 
         <p className="relative z-10 max-w-[669px] text-lg xl:text-xl leading-7 text-[#dbeafe]">
-          Sistem peringatan dini cerdas yang menggabungkan sensor Laser-Induced
-          Graphene (LIG) dan analisis degradasi hidrokoloid untuk memantau
-          risiko kebocoran, kesehatan kulit, dan volume kantong secara
-          real-time.
+          Sistem peringatan dini cerdas yang menggabungkan sensor
+          kapasitif dan resistif untuk memantau risiko kebocoran dan
+          volume kantong secara real-time.
         </p>
       </div>
 

@@ -13,7 +13,6 @@ import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
-const LIG_SMOOTH_WINDOW = 5;
 
 export function PatientWorkspace({
   rosterPatients,
@@ -87,20 +86,6 @@ export function PatientWorkspace({
   const selectedPrediction = predictionForName(selectedName);
   const isCritical = selectedPrediction.tier === "urgent";
   const isWarning = selectedPrediction.tier === "warning";
-
-  // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
-  // kapasitif kantong. lig_raw sample-per-sample sangat berisik (data pilot: lompat
-  // 1 -> 1194 -> 3 antar sample berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW
-  // sample terakhir, konsisten dengan mobile app & backend (use-sensor-series.ts,
-  // sensor.service.ts). Jatuh balik ke kolom `skin` statis kalau belum ada log sensor.
-  const recentLig = logs.slice(-LIG_SMOOTH_WINDOW);
-  const avgLig = recentLig.length
-    ? recentLig.reduce((sum: number, log: any) => sum + (log.lig_raw ?? 0), 0) / recentLig.length
-    : null;
-  const skinIntegrity =
-    avgLig != null
-      ? clamp(((avgLig - calibration.lig_dead) / (calibration.lig_base - calibration.lig_dead)) * 100)
-      : selectedPatient.skin;
 
   // Level volume kantong dari sensor kapasitif (bacaan terakhir, sama dengan mobile
   // app) — bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
@@ -255,18 +240,12 @@ export function PatientWorkspace({
                 )}
               </header>
               <div className="space-y-5 p-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <MetricCard
                     icon="drop"
                     label="Level Kantong"
                     value={bagLevel}
                     color="blue"
-                  />
-                  <MetricCard
-                    icon="heart"
-                    label="Integritas Kulit"
-                    value={skinIntegrity}
-                    color="purple"
                   />
                 </div>
                 <MonitoringCard
@@ -276,8 +255,8 @@ export function PatientWorkspace({
                   data={logs}
                 />
                 <MonitoringCard
-                  title="Resistansi LIG (Fail-Safe)"
-                  subtitle="Deteksi cairan langsung"
+                  title="Resistansi LIG (mentah)"
+                  subtitle="Bacaan sensor LIG, belum ada interpretasi klinis tervalidasi"
                   kind="resistance"
                   data={logs}
                 />
