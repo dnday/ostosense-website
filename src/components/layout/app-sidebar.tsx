@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, Home, LogOut, Settings, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUrgentAlerts } from "@/components/urgent-alert-provider";
 
 const NAV_ITEMS = [
   { key: "home", label: "Beranda", Icon: Home },
@@ -21,6 +22,7 @@ export function AppSidebar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { unreadCount, clearUnread } = useUrgentAlerts();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -53,14 +55,24 @@ export function AppSidebar({
               key={key}
               aria-label={label}
               aria-current={active ? "page" : undefined}
-              onClick={() => onNavigate(key)}
-              className={`flex w-16 flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${
+              onClick={() => {
+                if (key === "notifications") clearUnread();
+                onNavigate(key);
+              }}
+              className={`relative flex w-16 flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${
                 active
                   ? "bg-white/15 text-white"
                   : "text-slate-400 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+              <span className="relative">
+                <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+                {key === "notifications" && unreadCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 grid min-w-[16px] place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-4 text-white ring-2 ring-[#1d2f4a]">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </span>
               <span className={`text-[10px] leading-3 tracking-wide ${active ? "font-semibold" : "font-medium"}`}>
                 {label}
               </span>

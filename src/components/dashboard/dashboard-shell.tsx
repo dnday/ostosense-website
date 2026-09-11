@@ -10,6 +10,7 @@ import { PatientWorkspace } from "@/components/dashboard/patient-workspace";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 import { ensureRole } from "@/lib/profile";
+import { UrgentAlertProvider } from "@/components/urgent-alert-provider";
 
 function ShellContent({ children }: { children?: React.ReactNode }) {
   const searchParams = useSearchParams();
@@ -134,6 +135,7 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
   }
 
   return (
+    <UrgentAlertProvider>
     <main className="min-h-screen bg-slate-50 font-sans text-slate-950 lg:h-screen lg:overflow-hidden">
       <AppSidebar view={currentView} onNavigate={handleNavigate} />
 
@@ -165,6 +167,7 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
         )}
       </div>
     </main>
+    </UrgentAlertProvider>
   );
 }
 

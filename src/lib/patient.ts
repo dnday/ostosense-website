@@ -15,6 +15,14 @@ export function getPatientSessionId(patientName: string): string | null {
   return PATIENT_SESSION_IDS[patientName] ?? null;
 }
 
+const SESSION_ID_TO_PATIENT = Object.fromEntries(
+  Object.entries(PATIENT_SESSION_IDS).map(([name, id]) => [id, name]),
+);
+
+export function getPatientNameBySessionId(sessionId: string): string | null {
+  return SESSION_ID_TO_PATIENT[sessionId] ?? null;
+}
+
 // Urgensi tampilan sekarang bersumber dari kelas AI (lihat src/lib/ai-prediction.ts),
 // bukan dari ambang numerik Patient.risk — lihat OSTOSENSE-AI/docs/
 // ai-software-integration-contract-v0.2.md, MUST FIX #1 dashboard.
