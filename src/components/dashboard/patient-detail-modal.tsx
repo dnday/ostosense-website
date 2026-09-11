@@ -20,6 +20,7 @@ type SensorLog = {
   timestamp: string;
   capacitance_raw?: number;
   lig_raw?: number;
+  res_15_raw?: number;
   res_16_raw?: number;
   kap_4_raw?: number;
   kap_5_raw?: number;
@@ -80,24 +81,22 @@ export function PatientDetailModal({
   const critical = prediction.tier === "urgent";
   const warning = prediction.tier === "warning";
 
-  // Integritas hidrokoloid/baseplate dari sensor LIG (resistif) — bukan dari sensor
-  // kapasitif kantong. Tidak ada sensor kelembaban kulit terpisah di hardware ini.
-  // Kap_4/Kap_5/Res_16 — channel yang direkam hardware tapi belum ada makna/kalibrasi
-  // produk sendiri (Kap_7 dikunci sebagai kanal kapasitif utama). Ditampilkan mentah
-  // sebagai diagnostik, bukan metrik dengan threshold seperti kulit/volume.
+  // Res_15 (elektroda DALAM baseplate) = failsafe/deteksi dini, Res_16 (elektroda
+  // LUAR baseplate) = kebocoran hampir/sedang menembus keluar — dua sinyal fisik
+  // berbeda, ditampilkan terpisah (bukan dirata-rata jadi satu "lig_raw" lagi).
+  // Kap_7 dikunci sebagai kanal volume; Kap_4/Kap_5 merepresentasikan kelembapan
+  // di sekitar baseplate. Nilainya mentah (Ω / raw ADC), belum dikalibrasi jadi
+  // persentase — belum ada dasar biofisika/klinis tervalidasi untuk itu.
   const last = logs[logs.length - 1];
 
-  // lig_raw sample-per-sample sangat berisik (data pilot: lompat 1 -> 1194 -> 3
-  // antar sample berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW sample terakhir,
-  // konsisten dengan mobile app & backend (use-sensor-series.ts, sensor.service.ts).
-  // Diagnostik raw di bawah tetap pakai `last` mentah — memang dilabeli "mentah".
-  // Ditampilkan sebagai bacaan mentah (Ω) saja — TIDAK dikonversi jadi persentase
-  // "integritas kulit": rumus lig_base/lig_dead itu kalibrasi linear 2-titik dari
-  // data pilot internal, belum ada dasar biofisika/klinis tervalidasi.
-  const recentLig = logs.slice(-LIG_SMOOTH_WINDOW);
-  const lastResistance = recentLig.length
-    ? Math.round(recentLig.reduce((sum, log) => sum + (log.lig_raw ?? 0), 0) / recentLig.length)
-    : null;
+  // Sample-per-sample sangat berisik (data pilot: lompat 1 -> 1194 -> 3 antar sample
+  // berturut-turut) — rata-ratakan LIG_SMOOTH_WINDOW sample terakhir per channel,
+  // konsisten dengan mobile app & backend.
+  const recent = logs.slice(-LIG_SMOOTH_WINDOW);
+  const avg = (pick: (log: SensorLog) => number | undefined) =>
+    recent.length ? Math.round(recent.reduce((sum, log) => sum + (pick(log) ?? 0), 0) / recent.length) : null;
+  const failsafeResistance = avg((log) => log.res_15_raw);
+  const leakResistance = avg((log) => log.res_16_raw);
 
   // Level volume kantong dari bacaan kapasitif terakhir (sama dengan mobile app) —
   // bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
@@ -186,24 +185,23 @@ export function PatientDetailModal({
             <Chart kind="resistance" data={logs} />
           </section>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
-              <p className="text-sm text-slate-500">Resistansi LIG</p>
-              <p className="mt-1 text-[28px] text-slate-900">{lastResistance !== null ? `${lastResistance}Ω` : "—"}</p>
-              <p className="mt-1 text-xs text-slate-400">
-                {lastResistance !== null ? "Sensor berfungsi baik" : "Belum ada device terpasang"}
-              </p>
+              <p className="text-sm text-slate-500">Failsafe (dalam baseplate)</p>
+              <p className="mt-1 text-[28px] text-slate-900">{failsafeResistance !== null ? `${failsafeResistance}Ω` : "—"}</p>
+              <p className="mt-1 text-xs text-slate-400">Res_15 — deteksi dini kontak cairan</p>
+            </div>
+            <div className="rounded-[14px] border border-slate-100 bg-white p-4">
+              <p className="text-sm text-slate-500">Kebocoran (luar baseplate)</p>
+              <p className="mt-1 text-[28px] text-slate-900">{leakResistance !== null ? `${leakResistance}Ω` : "—"}</p>
+              <p className="mt-1 text-xs text-slate-400">Res_16 — cairan hampir/sedang menembus keluar</p>
             </div>
           </div>
 
           {last && (
             <section className="rounded-[14px] border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Diagnostik Sensor (mentah)</p>
-              <div className="mt-2 grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="text-[11px] text-slate-400">Res_16 (LIG cadangan)</p>
-                  <p className="text-sm font-semibold text-slate-700">{last.res_16_raw ?? "—"}</p>
-                </div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kelembapan Baseplate (mentah)</p>
+              <div className="mt-2 grid grid-cols-2 gap-3 text-center">
                 <div>
                   <p className="text-[11px] text-slate-400">Kap_4</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_4_raw ?? "—"}</p>
