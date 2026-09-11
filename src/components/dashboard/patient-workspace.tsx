@@ -110,23 +110,23 @@ export function PatientWorkspace({
               </h3>
               <div className="mt-1.5 flex items-center gap-2">
                 <div className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
-                  <Users size={12} className="text-slate-400" />
+                  <Users size={12} className="text-slate-500" />
                   {rosterPatients.length} Pasien
                 </div>
                 <div className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
-                  <ArrowDownUp size={12} className="text-slate-400" />
+                  <ArrowDownUp size={12} className="text-slate-500" />
                   Urut: Nama
                 </div>
               </div>
             </div>
             <div className="relative w-48">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
                 type="text"
                 placeholder="Cari pasien..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-1.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-slate-900 transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 border border-slate-200 pl-9 pr-3 py-1.5 rounded-md text-sm outline-none focus:ring-1 focus:ring-slate-900 transition-all placeholder:text-slate-500"
               />
             </div>
           </header>
@@ -134,13 +134,13 @@ export function PatientWorkspace({
             {rosterPatients.length === 0 ? (
               <div className="grid min-h-[360px] place-items-center text-center">
                 <div>
-                  <div className="mx-auto grid size-14 place-items-center rounded-full bg-slate-100 text-slate-400">
+                  <div className="mx-auto grid size-14 place-items-center rounded-full bg-slate-100 text-slate-500">
                     <Icon name="users" size={24} />
                   </div>
                   <p className="mt-4 text-sm font-medium text-slate-600">
                     Belum ada pasien
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-500">
                     Data pasien akan muncul di sini.
                   </p>
                 </div>
@@ -177,7 +177,7 @@ export function PatientWorkspace({
                 <p className="mt-4 text-sm text-slate-600">
                   Belum ada grafik pemantauan
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500">
                   Pilih pasien setelah data tersedia untuk melihat grafik.
                 </p>
               </div>
@@ -197,7 +197,7 @@ export function PatientWorkspace({
                     <p className="mt-1 text-sm text-slate-500">
                       {selectedPatient.location}
                     </p>
-                    <p className="mt-0.5 text-xs font-medium text-slate-400">
+                    <p className="mt-0.5 text-xs font-medium text-slate-500">
                       Data sensor: {formatFreshness(logs[logs.length - 1]?.timestamp)}
                     </p>
                   </div>
@@ -222,7 +222,7 @@ export function PatientWorkspace({
                   </div>
                 ) : selectedPrediction.tier === "unknown" ? (
                   <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-slate-400 bg-slate-50 px-4 py-3.5">
-                    <HelpCircle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                    <HelpCircle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
                     <div>
                       <h4 className="text-[14px] font-semibold text-slate-600">AI belum tersedia</h4>
                       <p className="mt-0.5 text-[13px] text-slate-500">Belum ada klasifikasi risiko untuk pasien ini</p>

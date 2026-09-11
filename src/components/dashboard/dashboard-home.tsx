@@ -92,12 +92,12 @@ export function DashboardHome({
         <article className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-500">Total Pasien</span>
-            <Users className="h-4 w-4 text-slate-400" />
+            <Users className="h-4 w-4 text-slate-500" />
           </div>
           <strong className="mt-3 block text-3xl font-semibold text-slate-900">
             {summary.totalPatients}
           </strong>
-          <p className="mt-1 text-xs font-medium text-slate-400">
+          <p className="mt-1 text-xs font-medium text-slate-500">
             {summary.breakdown.inap} Rawat Inap • {summary.breakdown.jalan} Rawat Jalan
           </p>
         </article>
@@ -114,7 +114,7 @@ export function DashboardHome({
           <strong className={`mt-3 block text-3xl font-semibold ${summary.actionNeeded.total > 0 ? "text-orange-600" : "text-slate-900"}`}>
             {summary.actionNeeded.total}
           </strong>
-          <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-orange-600/80" : "text-slate-400"}`}>
+          <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-orange-600/80" : "text-slate-500"}`}>
             {summary.actionNeeded.critical} Kritis • {summary.actionNeeded.warning} Waspada
             {summary.unavailable > 0 ? ` • ${summary.unavailable} AI belum tersedia` : ""}
           </p>
@@ -123,12 +123,12 @@ export function DashboardHome({
         <article className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-500">Rata-rata Risiko Unit</span>
-            <Activity className={`h-4 w-4 ${summary.globalRisk === "Tinggi" ? "text-rose-500" : summary.globalRisk === "Sedang" ? "text-amber-500" : summary.globalRisk === "Belum diketahui" ? "text-slate-400" : "text-emerald-500"}`} />
+            <Activity className={`h-4 w-4 ${summary.globalRisk === "Tinggi" ? "text-rose-500" : summary.globalRisk === "Sedang" ? "text-amber-500" : summary.globalRisk === "Belum diketahui" ? "text-slate-500" : "text-emerald-500"}`} />
           </div>
           <strong className={`mt-3 block text-3xl font-semibold ${summary.globalRisk === "Tinggi" ? "text-rose-600" : summary.globalRisk === "Sedang" ? "text-amber-600" : summary.globalRisk === "Belum diketahui" ? "text-slate-500" : "text-slate-900"}`}>
             {summary.globalRisk}
           </strong>
-          <p className="mt-1 text-xs font-medium text-slate-400">
+          <p className="mt-1 text-xs font-medium text-slate-500">
             {summary.globalRisk === "Tinggi" ? "Unit dalam status kritis" : summary.globalRisk === "Sedang" ? "Unit perlu perhatian" : summary.globalRisk === "Belum diketahui" ? "Belum ada klasifikasi AI" : "Kondisi stabil"}
           </p>
         </article>
@@ -154,7 +154,7 @@ export function DashboardHome({
               activeTab === "Rawat Inap" ? "bg-[#1d2f4a] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            <Building size={16} className={activeTab === "Rawat Inap" ? "text-white" : "text-slate-400"} />
+            <Building size={16} className={activeTab === "Rawat Inap" ? "text-white" : "text-slate-500"} />
             Rawat Inap ({summary.breakdown.inap})
           </button>
 
@@ -164,7 +164,7 @@ export function DashboardHome({
               activeTab === "Rawat Jalan" ? "bg-[#1d2f4a] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            <Home size={16} className={activeTab === "Rawat Jalan" ? "text-white" : "text-slate-400"} />
+            <Home size={16} className={activeTab === "Rawat Jalan" ? "text-white" : "text-slate-500"} />
             Rawat Jalan ({summary.breakdown.jalan})
           </button>
         </div>
@@ -190,7 +190,7 @@ export function DashboardHome({
                   <CareBadge type={patient.type} />
                 </div>
 
-                <p className="mt-2 text-[11px] font-medium text-slate-400">
+                <p className="mt-2 text-[11px] font-medium text-slate-500">
                   Data sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}
                 </p>
 

@@ -11,6 +11,7 @@ import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
 import { ensureRole } from "@/lib/profile";
 import { UrgentAlertProvider } from "@/components/urgent-alert-provider";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 
 function ShellContent({ children }: { children?: React.ReactNode }) {
   const searchParams = useSearchParams();
@@ -131,7 +132,7 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
   if (pathname === "/notifications") currentView = "notifications";
 
   if (!authChecked) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -144,6 +145,10 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
 
         {children ? (
           <div className="flex-1 overflow-auto">{children}</div>
+        ) : isLoading ? (
+          <div className="flex-1 overflow-auto">
+            <DashboardSkeleton />
+          </div>
         ) : loadError ? (
           <div className="flex flex-1 items-center justify-center p-8 text-center">
             <div>

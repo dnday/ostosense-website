@@ -5,6 +5,7 @@ import { Bell, Search, CheckCircle2 } from 'lucide-react';
 import { NotificationData } from '@/types/notification';
 import { NotificationItem } from '@/components/notifications/notification-item';
 import { DashboardShell } from '@/components/dashboard/dashboard-shell';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -88,8 +89,16 @@ export default function NotificationsPage() {
         {/* Notifications List */}
         <div className="flex flex-col gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           {loading ? (
-            <div className="flex justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex flex-col gap-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-100 p-4">
+                  <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="mt-2 h-3 w-3/4" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="text-center p-8 text-slate-500">

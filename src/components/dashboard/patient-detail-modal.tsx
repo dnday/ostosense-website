@@ -115,12 +115,12 @@ export function PatientDetailModal({
           <div>
             <h2 className="text-xl font-normal text-slate-900">{patient.name}</h2>
             <p className="mt-1 text-sm text-slate-500">Detail Pemantauan</p>
-            <p className="mt-0.5 text-xs font-medium text-slate-400">Data sensor: {formatFreshness(last?.timestamp)}</p>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">Data sensor: {formatFreshness(last?.timestamp)}</p>
           </div>
           <button
             aria-label="Tutup"
             onClick={onClose}
-            className="grid size-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
           >
             <X size={18} />
           </button>
@@ -166,7 +166,7 @@ export function PatientDetailModal({
                   </p>
                 </div>
               </div>
-              <p className={`mt-3 text-xs ${critical ? "text-rose-600" : "text-slate-400"}`}>
+              <p className={`mt-3 text-xs ${critical ? "text-rose-600" : "text-slate-500"}`}>
                 {critical ? "Perlu perhatian segera" : warning ? "Perlu dipantau" : prediction.tier === "unknown" ? "Belum ada klasifikasi risiko" : "Dalam rentang aman"}
               </p>
             </div>
@@ -187,25 +187,25 @@ export function PatientDetailModal({
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Failsafe (dalam baseplate)</p>
               <p className="mt-1 text-[28px] text-slate-900">{failsafeResistance !== null ? `${failsafeResistance}Ω` : "—"}</p>
-              <p className="mt-1 text-xs text-slate-400">Res_15 — deteksi dini kontak cairan</p>
+              <p className="mt-1 text-xs text-slate-500">Res_15 — deteksi dini kontak cairan</p>
             </div>
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Kebocoran (luar baseplate)</p>
               <p className="mt-1 text-[28px] text-slate-900">{leakResistance !== null ? `${leakResistance}Ω` : "—"}</p>
-              <p className="mt-1 text-xs text-slate-400">Res_16 — cairan hampir/sedang menembus keluar</p>
+              <p className="mt-1 text-xs text-slate-500">Res_16 — cairan hampir/sedang menembus keluar</p>
             </div>
           </div>
 
           {last && (
             <section className="rounded-[14px] border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kelembapan Baseplate (mentah)</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kelembapan Baseplate (mentah)</p>
               <div className="mt-2 grid grid-cols-2 gap-3 text-center">
                 <div>
-                  <p className="text-[11px] text-slate-400">Kap_4</p>
+                  <p className="text-[11px] text-slate-500">Kap_4</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_4_raw ?? "—"}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-400">Kap_5</p>
+                  <p className="text-[11px] text-slate-500">Kap_5</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_5_raw ?? "—"}</p>
                 </div>
               </div>
@@ -243,7 +243,7 @@ export function PatientDetailModal({
                 <li key={entry.label} className="relative">
                   <span className={`absolute -left-[21px] top-1 size-2 rounded-full ${entry.dot}`} />
                   <p className="text-sm text-slate-700">{entry.label}</p>
-                  <p className="text-xs text-slate-400">{entry.time}</p>
+                  <p className="text-xs text-slate-500">{entry.time}</p>
                 </li>
               ))}
             </ul>
