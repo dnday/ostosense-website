@@ -69,7 +69,6 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
           location: d.location,
           risk: d.risk,
           level: d.level,
-          skin: d.skin
         }));
         setPatients(mappedPatients);
         setSelectedName((current) =>

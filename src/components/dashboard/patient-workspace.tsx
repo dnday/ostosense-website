@@ -9,10 +9,9 @@ import { clinicalNotes } from "@/data/clinical-notes";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
 import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
+import { volumePct, formatFreshness } from "@/lib/volume";
 import type { Patient } from "@/types/patient";
 import { supabase } from "@/lib/supabase";
-
-const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 export function PatientWorkspace({
   rosterPatients,
@@ -90,10 +89,7 @@ export function PatientWorkspace({
   // Level volume kantong dari sensor kapasitif (bacaan terakhir, sama dengan mobile
   // app) — bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
   const lastCap = logs.length ? logs[logs.length - 1].capacitance_raw : null;
-  const bagLevel =
-    lastCap != null
-      ? clamp(((lastCap - calibration.cap_empty) / (calibration.cap_full - calibration.cap_empty)) * 100)
-      : selectedPatient.level;
+  const bagLevel = lastCap != null ? volumePct(lastCap, calibration) : selectedPatient.level;
 
   const filteredRoster = rosterPatients.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -200,6 +196,9 @@ export function PatientWorkspace({
                     </h3>
                     <p className="mt-1 text-sm text-slate-500">
                       {selectedPatient.location}
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium text-slate-400">
+                      Data sensor: {formatFreshness(logs[logs.length - 1]?.timestamp)}
                     </p>
                   </div>
                   <CareBadge type={selectedPatient.type} large />

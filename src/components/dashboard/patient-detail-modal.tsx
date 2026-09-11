@@ -6,10 +6,10 @@ import { supabase } from "@/lib/supabase";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPrediction, formatPrediction, type AiPredictionInfo } from "@/lib/ai-prediction";
 import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
+import { volumePct, formatFreshness } from "@/lib/volume";
 import type { Patient } from "@/types/patient";
 
 const LIG_SMOOTH_WINDOW = 5;
-const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 const historyEntries = [
   { label: "Kantong diganti", time: "08:15", dot: "bg-emerald-500" },
@@ -100,10 +100,7 @@ export function PatientDetailModal({
 
   // Level volume kantong dari bacaan kapasitif terakhir (sama dengan mobile app) —
   // bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
-  const bagLevel =
-    last?.capacitance_raw != null
-      ? clamp(((last.capacitance_raw - calibration.cap_empty) / (calibration.cap_full - calibration.cap_empty)) * 100)
-      : patient.level;
+  const bagLevel = last?.capacitance_raw != null ? volumePct(last.capacitance_raw, calibration) : patient.level;
 
   return (
     <div
@@ -118,6 +115,7 @@ export function PatientDetailModal({
           <div>
             <h2 className="text-xl font-normal text-slate-900">{patient.name}</h2>
             <p className="mt-1 text-sm text-slate-500">Detail Pemantauan</p>
+            <p className="mt-0.5 text-xs font-medium text-slate-400">Data sensor: {formatFreshness(last?.timestamp)}</p>
           </div>
           <button
             aria-label="Tutup"

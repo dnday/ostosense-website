@@ -6,5 +6,4 @@ export type Patient = {
   location: string;
   risk?: number;
   level: number;
-  skin: number;
 };

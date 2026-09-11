@@ -5,19 +5,37 @@ import { CareBadge } from "@/components/ui/care-badge";
 import { PatientDetailModal } from "@/components/dashboard/patient-detail-modal";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
+import { fetchCalibration, DEFAULT_CALIBRATION, type Calibration } from "@/lib/calibration";
+import { fetchLatestVolumeForSessions, formatFreshness, type VolumeReading } from "@/lib/volume";
 export function DashboardHome({
   patients,
 }: {
   patients: Patient[];
 }) {
   const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
+  const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
+  const [volumes, setVolumes] = useState<Record<string, VolumeReading>>({});
+
+  useEffect(() => {
+    fetchCalibration().then(setCalibration);
+  }, []);
 
   useEffect(() => {
     const sessionIds = patients
       .map((p) => getPatientSessionId(p.name))
       .filter((id): id is string => id !== null);
     fetchLatestPredictionsForSessions(sessionIds).then(setPredictions);
-  }, [patients]);
+    fetchLatestVolumeForSessions(sessionIds, calibration).then(setVolumes);
+  }, [patients, calibration]);
+
+  // Level kantong live dari sensor_logs (sama dengan workspace & modal detail) —
+  // bukan kolom `level` statis di tabel `patients`. Jatuh balik ke situ kalau
+  // belum ada log sensor untuk pasien ini.
+  const readingForPatient = (patient: Patient) => {
+    const sessionId = getPatientSessionId(patient.name);
+    return sessionId ? volumes[sessionId] : undefined;
+  };
+  const levelForPatient = (patient: Patient) => readingForPatient(patient)?.value ?? patient.level;
 
   const tierForPatient = (patient: Patient) => {
     const sessionId = getPatientSessionId(patient.name);
@@ -172,14 +190,18 @@ export function DashboardHome({
                   <CareBadge type={patient.type} />
                 </div>
 
+                <p className="mt-2 text-[11px] font-medium text-slate-400">
+                  Data sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}
+                </p>
+
                 <div className="mt-5 flex justify-between text-xs font-medium text-slate-500">
                   <span>Level Kantong</span>
-                  <span className="text-slate-700">{patient.level}%</span>
+                  <span className="text-slate-700">{levelForPatient(patient)}%</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <i
                     className={`block h-full rounded-full transition-all duration-500 ${high ? "bg-rose-500" : "bg-blue-500"}`}
-                    style={{ width: `${patient.level}%` }}
+                    style={{ width: `${levelForPatient(patient)}%` }}
                   />
                 </div>
 
