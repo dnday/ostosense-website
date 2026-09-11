@@ -116,8 +116,10 @@ export function DashboardHome({
           </strong>
           <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-orange-600/80" : "text-slate-500"}`}>
             {summary.actionNeeded.critical} Kritis • {summary.actionNeeded.warning} Waspada
-            {summary.unavailable > 0 ? ` • ${summary.unavailable} AI belum tersedia` : ""}
           </p>
+          {summary.unavailable > 0 && (
+            <p className="mt-1 text-xs font-medium text-slate-400">{summary.unavailable} pasien AI belum tersedia</p>
+          )}
         </article>
 
         <article className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -228,6 +230,11 @@ export function DashboardHome({
               </article>
             );
           })
+        ) : patients.length === 0 ? (
+          <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-[14px]">
+            <p className="text-slate-500 font-medium">Belum ada pasien terdaftar.</p>
+            <p className="mt-1 text-sm text-slate-400">Pasien akan muncul di sini setelah terdaftar di sistem.</p>
+          </div>
         ) : (
           <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-[14px]">
             <p className="text-slate-500 font-medium">Tidak ada pasien yang sesuai dengan filter.</p>

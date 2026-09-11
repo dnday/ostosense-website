@@ -53,6 +53,13 @@ export default function SettingsPage() {
   };
 
   const submitCalibration = async () => {
+    // Nilai ini dipakai buat hitung Level Kantong SEMUA pasien (lihat lib/volume.ts,
+    // dipakai bareng di roster/workspace/detail) — bukan cuma satu pasien, jadi
+    // salah ketik di sini langsung geser angka volume semua orang di dashboard.
+    const confirmed = window.confirm(
+      "Kalibrasi ini berlaku untuk SEMUA pasien di dashboard, bukan cuma satu. Simpan perubahan?"
+    );
+    if (!confirmed) return;
     setCalibrationSaving(true);
     await saveCalibration(calibration);
     setCalibrationSaving(false);
@@ -131,7 +138,7 @@ export default function SettingsPage() {
             Nilai mentah sensor kapasitansi yang dipetakan ke persentase di grafik. Sesuaikan setelah kalibrasi ulang sensor fisik.
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-500">Kapasitansi Kosong (raw)</label>
               <input
