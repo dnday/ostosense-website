@@ -84,9 +84,11 @@ export function PatientDetailModal({
   // Res_15 (elektroda DALAM baseplate) = failsafe/deteksi dini, Res_16 (elektroda
   // LUAR baseplate) = kebocoran hampir/sedang menembus keluar — dua sinyal fisik
   // berbeda, ditampilkan terpisah (bukan dirata-rata jadi satu "lig_raw" lagi).
-  // Kap_7 dikunci sebagai kanal volume; Kap_4/Kap_5 merepresentasikan kelembapan
-  // di sekitar baseplate. Nilainya mentah (Ω / raw ADC), belum dikalibrasi jadi
-  // persentase — belum ada dasar biofisika/klinis tervalidasi untuk itu.
+  // Kap_7 dikunci sebagai kanal volume; Kap_4 (dalam) dan Kap_5 (luar)
+  // merepresentasikan kelembapan di dua posisi baseplate yang sama seperti
+  // Res_15/Res_16 (sensor identik, cuma beda posisi dalam/luar). Nilainya mentah
+  // (Ω / raw ADC), belum dikalibrasi jadi persentase — belum ada dasar
+  // biofisika/klinis tervalidasi untuk itu.
   const last = logs[logs.length - 1];
 
   // Sample-per-sample sangat berisik (data pilot: lompat 1 -> 1194 -> 3 antar sample
@@ -201,11 +203,11 @@ export function PatientDetailModal({
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kelembapan Baseplate (mentah)</p>
               <div className="mt-2 grid grid-cols-2 gap-3 text-center">
                 <div>
-                  <p className="text-[11px] text-slate-500">Kap_4</p>
+                  <p className="text-[11px] text-slate-500">Kelembapan (dalam)</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_4_raw ?? "—"}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Kap_5</p>
+                  <p className="text-[11px] text-slate-500">Kelembapan (luar)</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_5_raw ?? "—"}</p>
                 </div>
               </div>
