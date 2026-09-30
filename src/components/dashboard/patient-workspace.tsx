@@ -29,6 +29,11 @@ export function PatientWorkspace({
   const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
   const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
   const [handled, setHandled] = useState(false);
+  const [rangeHours, setRangeHours] = useState<2 | 6 | 24>(2);
+
+  // Cadence produksi ~1Hz — 24 jam bisa >80rb baris, kebanyakan buat ditarik &
+  // digambar browser. Dibatasi ke titik TERBARU dalam rentang itu, bukan semua.
+  const RANGE_POINT_CAP = 300;
 
   // Reset status "sudah ditangani" tiap ganti pasien — jangan sampai kebawa
   // dari pasien sebelumnya.
@@ -48,12 +53,14 @@ export function PatientWorkspace({
     }
 
     const fetchLogs = async () => {
+      const since = new Date(Date.now() - rangeHours * 60 * 60 * 1000).toISOString();
       const { data } = await supabase
         .from('sensor_logs')
         .select('*')
         .eq('session_id', sessionId)
+        .gte('timestamp', since)
         .order('timestamp', { ascending: false })
-        .limit(20);
+        .limit(RANGE_POINT_CAP);
       if (data) {
         setLogs(data.reverse()); // Reverse to get chronological order for the chart
       }
@@ -66,7 +73,7 @@ export function PatientWorkspace({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'sensor_logs', filter: `session_id=eq.${sessionId}` },
         (payload) => {
-          setLogs((prev) => [...prev, payload.new].slice(-20)); // Keep last 20
+          setLogs((prev) => [...prev, payload.new].slice(-RANGE_POINT_CAP));
         }
       )
       .subscribe();
@@ -74,7 +81,7 @@ export function PatientWorkspace({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedName]);
+  }, [selectedName, rangeHours]);
 
   // Satu query buat semua pasien di roster (bukan N+1) — lihat src/lib/ai-prediction.ts.
   useEffect(() => {
@@ -331,6 +338,23 @@ export function PatientWorkspace({
                     <span>Aman (0-60%)</span>
                     <span>Waspada (60-80%)</span>
                     <span>Kritis (&gt;80%)</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Rentang grafik sensor</span>
+                  <div className="inline-flex rounded-lg bg-slate-100 p-1 text-xs font-medium text-slate-600">
+                    {([2, 6, 24] as const).map((h) => (
+                      <button
+                        key={h}
+                        onClick={() => setRangeHours(h)}
+                        className={`rounded-md px-2.5 py-1 transition-colors ${
+                          rangeHours === h ? "bg-white font-semibold text-slate-900 shadow-sm" : "hover:text-slate-900"
+                        }`}
+                      >
+                        {h} Jam
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <MonitoringCard
