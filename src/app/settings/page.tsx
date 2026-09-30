@@ -97,7 +97,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="flex flex-col gap-4 rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-slate-400" />
             <h2 className="text-sm font-semibold text-slate-900">Profil</h2>
@@ -129,7 +129,7 @@ export default function SettingsPage() {
           </button>
         </section>
 
-        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="flex flex-col gap-4 rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-slate-400" />
             <h2 className="text-sm font-semibold text-slate-900">Kalibrasi Sensor</h2>
@@ -165,6 +165,7 @@ export default function SettingsPage() {
                 onChange={(e) => setCalibrationField("humid_high", e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#283953] focus:ring-1 focus:ring-[#283953]"
               />
+              <p className="mt-1 text-[11px] text-slate-400">Belum dipakai fitur manapun — tersimpan, tapi tidak memengaruhi tampilan.</p>
             </div>
           </div>
 
@@ -178,7 +179,7 @@ export default function SettingsPage() {
           </button>
         </section>
 
-        <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="flex flex-col gap-4 rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-slate-400" />
             <h2 className="text-sm font-semibold text-slate-900">Notifikasi</h2>
