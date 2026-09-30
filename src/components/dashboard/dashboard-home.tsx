@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Wifi, AlertTriangle, ShieldCheck, Building, Home } from "lucide-react";
+import { Search, Building, Home } from "lucide-react";
 import type { Patient } from "@/types/patient";
-import { CareBadge } from "@/components/ui/care-badge";
 import { PatientDetailModal } from "@/components/dashboard/patient-detail-modal";
 import { getPatientSessionId } from "@/lib/patient";
 import { fetchLatestPredictionsForSessions, formatPrediction, type AiPredictionRow } from "@/lib/ai-prediction";
@@ -158,77 +157,45 @@ export function DashboardHome({
         </div>
       </div>
 
-      {/* Ringkasan */}
+      {/* Ringkasan — satu mekanisme aksen (titik warna) dipakai konsisten, bukan
+          badge+ring+background beda-beda di tiap kartu. */}
       <section className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3" aria-label="Ringkasan pasien">
-        <article className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Pasien Aktif</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-              <Wifi size={12} className={summary.connected > 0 ? "text-emerald-600" : "text-slate-400"} />
-              {summary.connected}/{summary.totalPatients} Terhubung
-            </span>
-          </div>
-          <p className="mt-3">
+        <article className="rounded-[14px] border border-slate-200 bg-white p-5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Total Pasien Aktif</span>
+          <p className="mt-2">
             <strong className="text-3xl font-semibold text-slate-900">{summary.totalPatients}</strong>{" "}
             <span className="text-sm font-medium text-slate-500">pasien terpantau</span>
           </p>
           <p className="mt-1 text-xs font-medium text-slate-500">
-            {summary.breakdown.inap} Rawat Inap, {summary.breakdown.jalan} Rawat Jalan
+            {summary.breakdown.inap} Rawat Inap · {summary.breakdown.jalan} Rawat Jalan
+          </p>
+          <p className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
+            <span className={`inline-block size-1.5 rounded-full ${summary.connected > 0 ? "bg-emerald-500" : "bg-slate-300"}`} />
+            {summary.connected}/{summary.totalPatients} sensor terhubung
           </p>
         </article>
 
-        <article
-          className={`rounded-[14px] border p-5 shadow-sm ${
-            summary.actionNeeded.total > 0 ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={`text-xs font-semibold uppercase tracking-wide ${
-                summary.actionNeeded.total > 0 ? "text-rose-700" : "text-slate-500"
-              }`}
-            >
-              Perlu Tindakan
-            </span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                summary.actionNeeded.total > 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-50 text-emerald-700"
-              }`}
-            >
-              {summary.actionNeeded.total > 0 ? <AlertTriangle size={12} /> : <ShieldCheck size={12} />}
-              {summary.actionNeeded.total > 0 ? "Perhatian Segera" : "Terkendali"}
-            </span>
-          </div>
-          <p className="mt-3">
+        <article className="rounded-[14px] border border-slate-200 bg-white p-5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Perlu Tindakan</span>
+          <p className="mt-2">
             <strong className={`text-3xl font-semibold ${summary.actionNeeded.total > 0 ? "text-rose-600" : "text-slate-900"}`}>
               {summary.actionNeeded.total}
             </strong>{" "}
             <span className="text-sm font-medium text-slate-500">notifikasi kritis/waspada</span>
           </p>
-          <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-rose-600" : "text-slate-500"}`}>
-            {summary.actionNeeded.critical} Kritis, {summary.actionNeeded.warning} Waspada
-            {summary.unavailable > 0 ? ` • ${summary.unavailable} AI belum tersedia` : ""}
+          <p className="mt-1 text-xs font-medium text-slate-500">
+            {summary.actionNeeded.critical} Kritis · {summary.actionNeeded.warning} Waspada
+            {summary.unavailable > 0 ? ` · ${summary.unavailable} AI belum tersedia` : ""}
+          </p>
+          <p className={`mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-rose-600" : "text-slate-500"}`}>
+            <span className={`inline-block size-1.5 rounded-full ${summary.actionNeeded.total > 0 ? "bg-rose-500" : "bg-emerald-500"}`} />
+            {summary.actionNeeded.total > 0 ? "Perlu perhatian segera" : "Terkendali"}
           </p>
         </article>
 
-        <article className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Rata-rata Risiko Unit</span>
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                summary.globalRisk === "Tinggi"
-                  ? "bg-rose-100 text-rose-700"
-                  : summary.globalRisk === "Sedang"
-                    ? "bg-amber-100 text-amber-700"
-                    : summary.globalRisk === "Belum diketahui"
-                      ? "bg-slate-100 text-slate-500"
-                      : "bg-teal-50 text-teal-700"
-              }`}
-            >
-              {summary.globalRisk === "Rendah" ? "Rendah / Terkontrol" : summary.globalRisk}
-            </span>
-          </div>
-          <p className="mt-3">
+        <article className="rounded-[14px] border border-slate-200 bg-white p-5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Rata-rata Risiko Unit</span>
+          <p className="mt-2">
             <strong className="text-3xl font-semibold text-slate-900">{summary.actionPct}%</strong>{" "}
             <span className="text-sm font-medium text-slate-500">pasien ditandai AI</span>
           </p>
@@ -243,8 +210,8 @@ export function DashboardHome({
               </>
             )}
           </div>
-          <p className="mt-1.5 text-xs font-medium text-slate-500">
-            {summary.tierCounts.critical} Urgent, {summary.tierCounts.warning} Caution, {summary.tierCounts.normal} Aman
+          <p className="mt-3 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
+            {summary.tierCounts.critical} Urgent · {summary.tierCounts.warning} Caution · {summary.tierCounts.normal} Aman
           </p>
         </article>
       </section>
@@ -273,86 +240,60 @@ export function DashboardHome({
                   ? { bar: "bg-amber-500", status: "text-amber-600", statusText: "Mendekati kapasitas maksimal", actionText: "Jadwalkan cek" }
                   : { bar: "bg-teal-500", status: "text-teal-600", statusText: "Kondisi normal", actionText: "Terkontrol" };
 
-            // Label pendek buat badge, tapi status "Simulasi"/"Eksperimental" (belum
-            // divalidasi klinis) tetap ikut — jangan sampai kartu ini kelihatan
-            // seperti keputusan AI final tanpa kualifikasi itu.
+            // Label pendek, tapi status "Simulasi"/"Eksperimental" (belum divalidasi
+            // klinis) tetap ikut — jangan sampai kartu ini kelihatan seperti
+            // keputusan AI final tanpa kualifikasi itu.
             const qualifier = prediction.label.startsWith("Simulasi")
               ? "Simulasi"
               : prediction.label.startsWith("AI Eksperimental")
                 ? "Eksperimental"
                 : null;
-            const riskBadgeText =
-              prediction.tier === "unknown" ? "Belum Tersedia" : `${prediction.riskClass}${qualifier ? ` · ${qualifier}` : ""}`;
-
-            const tierBorder =
-              high
-                ? "border-l-rose-500 border-y-rose-200 border-r-rose-200 bg-rose-50/30"
-                : prediction.tier === "warning"
-                  ? "border-l-amber-500 border-y-amber-200 border-r-amber-200"
-                  : prediction.tier === "unknown"
-                    ? "border-l-slate-300 border-y-slate-200 border-r-slate-200"
-                    : "border-l-teal-500 border-y-slate-200 border-r-slate-200";
+            const riskText =
+              prediction.tier === "unknown" ? "Belum tersedia" : `${prediction.riskClass}${qualifier ? ` · ${qualifier}` : ""}`;
+            const riskDot = high ? "bg-rose-500" : prediction.tier === "warning" ? "bg-amber-500" : prediction.tier === "unknown" ? "bg-slate-300" : "bg-teal-500";
+            const riskColor = high ? "text-rose-700" : prediction.tier === "warning" ? "text-amber-700" : "text-slate-500";
 
             return (
               <article
                 key={patient.name}
-                className={`overflow-hidden rounded-[14px] border border-l-4 bg-white shadow-sm transition-all hover:shadow-md ${tierBorder}`}
+                className="rounded-[14px] border border-slate-200 bg-white p-5 transition-shadow hover:shadow-sm"
               >
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{patient.name}</h3>
-                    <span
-                      className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold whitespace-nowrap ${
-                        high
-                          ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-500/20"
-                          : prediction.tier === "warning"
-                            ? "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-500/20"
-                            : prediction.tier === "unknown"
-                              ? "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-500/10"
-                              : "bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-500/20"
-                      }`}
-                    >
-                      {riskBadgeText}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <CareBadge type={patient.type} />
-                    <span className="text-sm font-medium text-slate-500">{patient.location}</span>
-                  </div>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{patient.name}</h3>
+                  <span className={`flex shrink-0 items-center gap-1.5 text-xs font-semibold whitespace-nowrap ${riskColor}`}>
+                    <span className={`inline-block size-1.5 rounded-full ${riskDot}`} />
+                    {riskText}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  {patient.type === "inap" ? "Rawat Inap" : "Rawat Jalan"} · {patient.location}
+                </p>
 
-                  <div className="mt-4 flex justify-between text-xs font-medium text-slate-500">
-                    <span>Level Kantong</span>
-                    <span className="font-semibold text-slate-700">{level}%</span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <i className={`block h-full rounded-full transition-all duration-500 ${volumeBand.bar}`} style={{ width: `${level}%` }} />
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between text-[11px] font-medium">
-                    <span className={volumeBand.status}>{volumeBand.statusText}</span>
-                    <span className="text-slate-400">{volumeBand.actionText}</span>
-                  </div>
+                <div className="mt-4 flex justify-between text-xs font-medium text-slate-500">
+                  <span>Level Kantong</span>
+                  <span className="font-semibold text-slate-700">{level}%</span>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <i className={`block h-full rounded-full transition-all duration-500 ${volumeBand.bar}`} style={{ width: `${level}%` }} />
+                </div>
+                <p className="mt-1.5 text-[11px] font-medium text-slate-400">
+                  {volumeBand.statusText} — {volumeBand.actionText}
+                </p>
 
-                  <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-400">
-                    <span>Sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}</span>
-                    {sessionId && <span className="truncate" title={sessionId}>Sesi: {sessionId}</span>}
-                  </div>
+                <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-400">
+                  <span>Sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}</span>
+                  {sessionId && <span className="truncate" title={sessionId}>Sesi: {sessionId}</span>}
                 </div>
 
-                {high ? (
-                  <button
-                    onClick={() => setDetailPatient(patient)}
-                    className="flex w-full items-center justify-center gap-1.5 bg-rose-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
-                  >
-                    Tindakan Segera <span aria-hidden="true">→</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setDetailPatient(patient)}
-                    className="flex w-full items-center justify-between border-t border-slate-100 px-5 py-3 text-left text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
-                  >
-                    Detail Pasien <span aria-hidden="true" className="text-lg leading-none">›</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => setDetailPatient(patient)}
+                  className={`mt-4 flex w-full items-center justify-between border-t border-slate-100 pt-3 text-left text-sm font-medium transition-colors ${
+                    high ? "text-rose-600 hover:text-rose-700" : "text-blue-600 hover:text-blue-700"
+                  }`}
+                >
+                  {high ? "Tindakan Segera" : "Detail Pasien"}
+                  <span aria-hidden="true" className="text-lg leading-none">›</span>
+                </button>
               </article>
             );
           })
