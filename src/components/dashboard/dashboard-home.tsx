@@ -196,8 +196,20 @@ export function DashboardHome({
         <article className="rounded-[14px] border border-slate-200 bg-white p-5">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Rata-rata Risiko Unit</span>
           <p className="mt-2">
-            <strong className="text-3xl font-semibold text-slate-900">{summary.actionPct}%</strong>{" "}
-            <span className="text-sm font-medium text-slate-500">pasien ditandai AI</span>
+            <strong
+              className={`text-3xl font-semibold ${
+                summary.globalRisk === "Tinggi"
+                  ? "text-rose-600"
+                  : summary.globalRisk === "Sedang"
+                    ? "text-amber-600"
+                    : summary.globalRisk === "Belum diketahui"
+                      ? "text-slate-500"
+                      : "text-slate-900"
+              }`}
+            >
+              {summary.globalRisk}
+            </strong>{" "}
+            <span className="text-sm font-medium text-slate-500">({summary.actionPct}% ditandai AI)</span>
           </p>
           {/* Bar sebaran tier — proporsi riil dari jumlah pasien per kelas, bukan angka tren */}
           <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-slate-100">
