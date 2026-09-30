@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Users, AlertCircle, CheckCircle2, Activity, Building, Home } from "lucide-react";
+import { Search, Wifi, AlertTriangle, ShieldCheck, Building, Home } from "lucide-react";
 import type { Patient } from "@/types/patient";
 import { CareBadge } from "@/components/ui/care-badge";
 import { PatientDetailModal } from "@/components/dashboard/patient-detail-modal";
@@ -42,14 +42,25 @@ export function DashboardHome({
     return formatPrediction(sessionId ? predictions[sessionId] ?? null : null).tier;
   };
 
+  // "Terhubung" = ada log sensor dalam 10 menit terakhir — dihitung dari
+  // freshness yang sama dengan yang ditampilkan di kartu pasien, bukan angka baru.
+  const CONNECTED_WINDOW_MS = 10 * 60 * 1000;
+  const isConnected = (patient: Patient) => {
+    const updatedAt = readingForPatient(patient)?.updatedAt;
+    return !!updatedAt && Date.now() - new Date(updatedAt).getTime() < CONNECTED_WINDOW_MS;
+  };
+
   const summary = useMemo(() => {
     const totalPatients = patients.length;
     const inap = patients.filter((p) => p.type === "inap").length;
     const jalan = totalPatients - inap;
+    const connected = patients.filter(isConnected).length;
 
     const critical = patients.filter((p) => tierForPatient(p) === "urgent").length;
     const warning = patients.filter((p) => tierForPatient(p) === "warning").length;
+    const normal = patients.filter((p) => tierForPatient(p) === "normal").length;
     const unavailable = patients.filter((p) => tierForPatient(p) === "unknown").length;
+    const actionTotal = critical + warning;
 
     let globalRisk = "Rendah";
     if (critical > 0) {
@@ -60,119 +71,187 @@ export function DashboardHome({
       globalRisk = "Belum diketahui";
     }
 
+    // Persentase pasien yang sedang ditandai (kritis/waspada) dari total yang
+    // punya klasifikasi AI — bukan angka tren rekaan, murni hitungan real-time.
+    const classified = totalPatients - unavailable;
+    const actionPct = classified > 0 ? Math.round((actionTotal / classified) * 100) : 0;
+
     return {
       totalPatients,
       breakdown: { inap, jalan },
-      actionNeeded: { total: critical + warning, critical, warning },
+      connected,
+      actionNeeded: { total: actionTotal, critical, warning },
+      tierCounts: { normal, warning, critical, unavailable },
       unavailable,
       globalRisk,
+      actionPct,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patients, predictions]);
+  }, [patients, predictions, volumes]);
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState<"Semua" | "Rawat Inap" | "Rawat Jalan">("Semua");
+  // Tab & pencarian
+  const [activeTab, setActiveTab] = useState<"Semua" | "Perlu Tindakan" | "Rawat Inap" | "Rawat Jalan">("Semua");
+  const [searchQuery, setSearchQuery] = useState("");
   const [detailPatient, setDetailPatient] = useState<Patient | null>(null);
 
   const filteredPatients = useMemo(() => {
     return patients.filter((p) => {
-      if (activeTab === "Semua") return true;
-      if (activeTab === "Rawat Inap") return p.type === "inap";
-      if (activeTab === "Rawat Jalan") return p.type === "jalan";
+      if (activeTab === "Rawat Inap" && p.type !== "inap") return false;
+      if (activeTab === "Rawat Jalan" && p.type !== "jalan") return false;
+      if (activeTab === "Perlu Tindakan") {
+        const tier = tierForPatient(p);
+        if (tier !== "urgent" && tier !== "warning") return false;
+      }
+      const q = searchQuery.trim().toLowerCase();
+      if (q && !p.name.toLowerCase().includes(q) && !p.location.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [patients, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patients, activeTab, searchQuery, predictions]);
+
+  const tabs: { key: typeof activeTab; label: string; count: number; icon?: typeof Building }[] = [
+    { key: "Semua", label: "Semua Pasien", count: summary.totalPatients },
+    { key: "Perlu Tindakan", label: "Perlu Tindakan", count: summary.actionNeeded.total },
+    { key: "Rawat Inap", label: "Rawat Inap", count: summary.breakdown.inap, icon: Building },
+    { key: "Rawat Jalan", label: "Rawat Jalan", count: summary.breakdown.jalan, icon: Home },
+  ];
 
   return (
     <div className="py-8 pr-12 pl-8 lg:h-[calc(100vh-105px)] lg:overflow-y-auto">
-      <section
-        className="grid grid-cols-1 gap-6 md:grid-cols-3"
-        aria-label="Ringkasan pasien"
-      >
-        <article className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500">Total Pasien</span>
-            <Users className="h-4 w-4 text-slate-500" />
+      {/* Toolbar: tab filter + pencarian, dalam satu permukaan */}
+      <div className="flex flex-col gap-3 rounded-[14px] border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+          {tabs.map(({ key, label, count, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
+                activeTab === key ? "bg-[#1d2f4a] text-white shadow-sm" : "text-slate-600 hover:bg-white"
+              }`}
+            >
+              {Icon && <Icon size={15} className={activeTab === key ? "text-white" : "text-slate-500"} />}
+              {label}
+              <span
+                className={`inline-flex min-w-[19px] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
+                  activeTab === key
+                    ? "bg-white/20 text-white"
+                    : key === "Perlu Tindakan" && count > 0
+                      ? "bg-rose-100 text-rose-600"
+                      : "bg-white text-slate-500"
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="relative sm:w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari nama pasien atau lokasi..."
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#1d2f4a] focus:ring-1 focus:ring-[#1d2f4a]"
+          />
+        </div>
+      </div>
+
+      {/* Ringkasan */}
+      <section className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3" aria-label="Ringkasan pasien">
+        <article className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Pasien Aktif</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              <Wifi size={12} className={summary.connected > 0 ? "text-emerald-600" : "text-slate-400"} />
+              {summary.connected}/{summary.totalPatients} Terhubung
+            </span>
           </div>
-          <strong className="mt-3 block text-3xl font-semibold text-slate-900">
-            {summary.totalPatients}
-          </strong>
+          <p className="mt-3">
+            <strong className="text-3xl font-semibold text-slate-900">{summary.totalPatients}</strong>{" "}
+            <span className="text-sm font-medium text-slate-500">pasien terpantau</span>
+          </p>
           <p className="mt-1 text-xs font-medium text-slate-500">
-            {summary.breakdown.inap} Rawat Inap • {summary.breakdown.jalan} Rawat Jalan
+            {summary.breakdown.inap} Rawat Inap, {summary.breakdown.jalan} Rawat Jalan
           </p>
         </article>
 
-        <article className={`rounded-[14px] border bg-white p-6 shadow-sm ${summary.actionNeeded.total > 0 ? "border-orange-200 bg-orange-50/20" : "border-slate-200"}`}>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500">Perlu Tindakan</span>
-            {summary.actionNeeded.total > 0 ? (
-              <AlertCircle className="h-4 w-4 text-orange-500" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        <article
+          className={`rounded-[14px] border p-5 shadow-sm ${
+            summary.actionNeeded.total > 0 ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`text-xs font-semibold uppercase tracking-wide ${
+                summary.actionNeeded.total > 0 ? "text-rose-700" : "text-slate-500"
+              }`}
+            >
+              Perlu Tindakan
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                summary.actionNeeded.total > 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              {summary.actionNeeded.total > 0 ? <AlertTriangle size={12} /> : <ShieldCheck size={12} />}
+              {summary.actionNeeded.total > 0 ? "Perhatian Segera" : "Terkendali"}
+            </span>
+          </div>
+          <p className="mt-3">
+            <strong className={`text-3xl font-semibold ${summary.actionNeeded.total > 0 ? "text-rose-600" : "text-slate-900"}`}>
+              {summary.actionNeeded.total}
+            </strong>{" "}
+            <span className="text-sm font-medium text-slate-500">notifikasi kritis/waspada</span>
+          </p>
+          <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-rose-600" : "text-slate-500"}`}>
+            {summary.actionNeeded.critical} Kritis, {summary.actionNeeded.warning} Waspada
+            {summary.unavailable > 0 ? ` • ${summary.unavailable} AI belum tersedia` : ""}
+          </p>
+        </article>
+
+        <article className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Rata-rata Risiko Unit</span>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                summary.globalRisk === "Tinggi"
+                  ? "bg-rose-100 text-rose-700"
+                  : summary.globalRisk === "Sedang"
+                    ? "bg-amber-100 text-amber-700"
+                    : summary.globalRisk === "Belum diketahui"
+                      ? "bg-slate-100 text-slate-500"
+                      : "bg-teal-50 text-teal-700"
+              }`}
+            >
+              {summary.globalRisk === "Rendah" ? "Rendah / Terkontrol" : summary.globalRisk}
+            </span>
+          </div>
+          <p className="mt-3">
+            <strong className="text-3xl font-semibold text-slate-900">{summary.actionPct}%</strong>{" "}
+            <span className="text-sm font-medium text-slate-500">pasien ditandai AI</span>
+          </p>
+          {/* Bar sebaran tier — proporsi riil dari jumlah pasien per kelas, bukan angka tren */}
+          <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-slate-100">
+            {summary.totalPatients > 0 && (
+              <>
+                <div className="bg-teal-500" style={{ width: `${(summary.tierCounts.normal / summary.totalPatients) * 100}%` }} />
+                <div className="bg-amber-500" style={{ width: `${(summary.tierCounts.warning / summary.totalPatients) * 100}%` }} />
+                <div className="bg-rose-500" style={{ width: `${(summary.tierCounts.critical / summary.totalPatients) * 100}%` }} />
+                <div className="bg-slate-300" style={{ width: `${(summary.tierCounts.unavailable / summary.totalPatients) * 100}%` }} />
+              </>
             )}
           </div>
-          <strong className={`mt-3 block text-3xl font-semibold ${summary.actionNeeded.total > 0 ? "text-orange-600" : "text-slate-900"}`}>
-            {summary.actionNeeded.total}
-          </strong>
-          <p className={`mt-1 text-xs font-medium ${summary.actionNeeded.total > 0 ? "text-orange-600/80" : "text-slate-500"}`}>
-            {summary.actionNeeded.critical} Kritis • {summary.actionNeeded.warning} Waspada
-          </p>
-          {summary.unavailable > 0 && (
-            <p className="mt-1 text-xs font-medium text-slate-400">{summary.unavailable} pasien AI belum tersedia</p>
-          )}
-        </article>
-
-        <article className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500">Rata-rata Risiko Unit</span>
-            <Activity className={`h-4 w-4 ${summary.globalRisk === "Tinggi" ? "text-rose-500" : summary.globalRisk === "Sedang" ? "text-amber-500" : summary.globalRisk === "Belum diketahui" ? "text-slate-500" : "text-emerald-500"}`} />
-          </div>
-          <strong className={`mt-3 block text-3xl font-semibold ${summary.globalRisk === "Tinggi" ? "text-rose-600" : summary.globalRisk === "Sedang" ? "text-amber-600" : summary.globalRisk === "Belum diketahui" ? "text-slate-500" : "text-slate-900"}`}>
-            {summary.globalRisk}
-          </strong>
-          <p className="mt-1 text-xs font-medium text-slate-500">
-            {summary.globalRisk === "Tinggi" ? "Unit dalam status kritis" : summary.globalRisk === "Sedang" ? "Unit perlu perhatian" : summary.globalRisk === "Belum diketahui" ? "Belum ada klasifikasi AI" : "Kondisi stabil"}
+          <p className="mt-1.5 text-xs font-medium text-slate-500">
+            {summary.tierCounts.critical} Urgent, {summary.tierCounts.warning} Caution, {summary.tierCounts.normal} Aman
           </p>
         </article>
       </section>
 
-      {/* Toolbar & Tabs Matches Design Mockup */}
-      <div className="mt-10 mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-[22px] font-normal text-[#1d2f4a]">Pemantauan Pasien</h2>
+      <h2 className="mt-8 mb-2 text-[18px] font-normal text-[#1d2f4a]">Pemantauan Pasien</h2>
 
-        <div className="inline-flex p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
-          <button
-            onClick={() => setActiveTab("Semua")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "Semua" ? "bg-[#1d2f4a] text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            Semua ({summary.totalPatients})
-          </button>
-
-          <button
-            onClick={() => setActiveTab("Rawat Inap")}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "Rawat Inap" ? "bg-[#1d2f4a] text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            <Building size={16} className={activeTab === "Rawat Inap" ? "text-white" : "text-slate-500"} />
-            Rawat Inap ({summary.breakdown.inap})
-          </button>
-
-          <button
-            onClick={() => setActiveTab("Rawat Jalan")}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "Rawat Jalan" ? "bg-[#1d2f4a] text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            <Home size={16} className={activeTab === "Rawat Jalan" ? "text-white" : "text-slate-500"} />
-            Rawat Jalan ({summary.breakdown.jalan})
-          </button>
-        </div>
-      </div>
-
-      <section className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <section className="mt-2 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {filteredPatients.length > 0 ? (
           filteredPatients.map((patient) => {
             const sessionId = getPatientSessionId(patient.name);
