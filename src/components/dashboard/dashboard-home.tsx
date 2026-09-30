@@ -249,7 +249,12 @@ export function DashboardHome({
         </article>
       </section>
 
-      <h2 className="mt-8 mb-2 text-[18px] font-normal text-[#1d2f4a]">Pemantauan Pasien</h2>
+      <div className="mt-8 mb-2 flex items-baseline justify-between">
+        <h2 className="text-[18px] font-normal text-[#1d2f4a]">Daftar Pasien Terpantau</h2>
+        <span className="text-xs font-medium text-slate-400">
+          Menampilkan {filteredPatients.length} dari {patients.length} pasien
+        </span>
+      </div>
 
       <section className="mt-2 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {filteredPatients.length > 0 ? (
@@ -257,55 +262,97 @@ export function DashboardHome({
             const sessionId = getPatientSessionId(patient.name);
             const prediction = formatPrediction(sessionId ? predictions[sessionId] ?? null : null);
             const high = prediction.tier === "urgent";
+            const level = levelForPatient(patient);
+
+            // Ambang 80% = VOLUME_FULL_THRESHOLD nyata di backend (mqtt.service.ts).
+            // Ambang 60% cuma pembagian tampilan (belum lulus jadi ambang klinis).
+            const volumeBand =
+              level >= 80
+                ? { bar: "bg-rose-500", status: "text-rose-600", statusText: "Melebihi ambang batas (80%)", actionText: "Kosongkan segera" }
+                : level >= 60
+                  ? { bar: "bg-amber-500", status: "text-amber-600", statusText: "Mendekati kapasitas maksimal", actionText: "Jadwalkan cek" }
+                  : { bar: "bg-teal-500", status: "text-teal-600", statusText: "Kondisi normal", actionText: "Terkontrol" };
+
+            // Label pendek buat badge, tapi status "Simulasi"/"Eksperimental" (belum
+            // divalidasi klinis) tetap ikut — jangan sampai kartu ini kelihatan
+            // seperti keputusan AI final tanpa kualifikasi itu.
+            const qualifier = prediction.label.startsWith("Simulasi")
+              ? "Simulasi"
+              : prediction.label.startsWith("AI Eksperimental")
+                ? "Eksperimental"
+                : null;
+            const riskBadgeText =
+              prediction.tier === "unknown" ? "Belum Tersedia" : `${prediction.riskClass}${qualifier ? ` · ${qualifier}` : ""}`;
+
+            const tierBorder =
+              high
+                ? "border-l-rose-500 border-y-rose-200 border-r-rose-200 bg-rose-50/30"
+                : prediction.tier === "warning"
+                  ? "border-l-amber-500 border-y-amber-200 border-r-amber-200"
+                  : prediction.tier === "unknown"
+                    ? "border-l-slate-300 border-y-slate-200 border-r-slate-200"
+                    : "border-l-teal-500 border-y-slate-200 border-r-slate-200";
 
             return (
               <article
                 key={patient.name}
-                className={`rounded-[14px] border bg-white p-5 shadow-sm transition-all hover:shadow-md ${high ? "border-rose-300 ring-1 ring-rose-50" : "border-slate-200"}`}
+                className={`overflow-hidden rounded-[14px] border border-l-4 bg-white shadow-sm transition-all hover:shadow-md ${tierBorder}`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-2">
                     <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{patient.name}</h3>
-                    <p className="text-sm font-medium text-slate-500 mt-0.5">{patient.location}</p>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold whitespace-nowrap ${
+                        high
+                          ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-500/20"
+                          : prediction.tier === "warning"
+                            ? "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-500/20"
+                            : prediction.tier === "unknown"
+                              ? "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-500/10"
+                              : "bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-500/20"
+                      }`}
+                    >
+                      {riskBadgeText}
+                    </span>
                   </div>
-                  <CareBadge type={patient.type} />
+                  <div className="mt-1 flex items-center gap-2">
+                    <CareBadge type={patient.type} />
+                    <span className="text-sm font-medium text-slate-500">{patient.location}</span>
+                  </div>
+
+                  <div className="mt-4 flex justify-between text-xs font-medium text-slate-500">
+                    <span>Level Kantong</span>
+                    <span className="font-semibold text-slate-700">{level}%</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <i className={`block h-full rounded-full transition-all duration-500 ${volumeBand.bar}`} style={{ width: `${level}%` }} />
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] font-medium">
+                    <span className={volumeBand.status}>{volumeBand.statusText}</span>
+                    <span className="text-slate-400">{volumeBand.actionText}</span>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-400">
+                    <span>Sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}</span>
+                    {sessionId && <span className="truncate" title={sessionId}>Sesi: {sessionId}</span>}
+                  </div>
                 </div>
 
-                <p className="mt-2 text-[11px] font-medium text-slate-500">
-                  Data sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}
-                </p>
-
-                <div className="mt-5 flex justify-between text-xs font-medium text-slate-500">
-                  <span>Level Kantong</span>
-                  <span className="text-slate-700">{levelForPatient(patient)}%</span>
-                </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <i
-                    className={`block h-full rounded-full transition-all duration-500 ${high ? "bg-rose-500" : "bg-blue-500"}`}
-                    style={{ width: `${levelForPatient(patient)}%` }}
-                  />
-                </div>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <span
-                    className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
-                      high
-                        ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-500/20"
-                        : prediction.tier === "unknown"
-                          ? "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-500/10"
-                          : "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/10"
-                    }`}
+                {high ? (
+                  <button
+                    onClick={() => setDetailPatient(patient)}
+                    className="flex w-full items-center justify-center gap-1.5 bg-rose-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
                   >
-                    {prediction.label}
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => setDetailPatient(patient)}
-                  className="mt-5 flex w-full items-center justify-between border-t border-slate-100 pt-3 text-left text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  Lihat Detail Pasien <span aria-hidden="true" className="text-lg leading-none">›</span>
-                </button>
+                    Tindakan Segera <span aria-hidden="true">→</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setDetailPatient(patient)}
+                    className="flex w-full items-center justify-between border-t border-slate-100 px-5 py-3 text-left text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
+                  >
+                    Detail Pasien <span aria-hidden="true" className="text-lg leading-none">›</span>
+                  </button>
+                )}
               </article>
             );
           })
