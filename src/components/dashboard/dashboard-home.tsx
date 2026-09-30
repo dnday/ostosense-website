@@ -288,10 +288,9 @@ export function DashboardHome({
                   {volumeBand.statusText} — {volumeBand.actionText}
                 </p>
 
-                <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-400">
-                  <span>Sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}</span>
-                  {sessionId && <span className="truncate" title={sessionId}>Sesi: {sessionId}</span>}
-                </div>
+                <p className="mt-3 text-[11px] font-medium text-slate-400">
+                  Sensor: {formatFreshness(readingForPatient(patient)?.updatedAt)}
+                </p>
 
                 <button
                   onClick={() => setDetailPatient(patient)}

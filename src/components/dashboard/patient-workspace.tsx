@@ -30,6 +30,7 @@ export function PatientWorkspace({
   const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
   const [handled, setHandled] = useState(false);
   const [rangeHours, setRangeHours] = useState<2 | 6 | 24>(2);
+  const [usedFallback, setUsedFallback] = useState(false);
 
   // Cadence produksi ~1Hz — 24 jam bisa >80rb baris, kebanyakan buat ditarik &
   // digambar browser. Dibatasi ke titik TERBARU dalam rentang itu, bukan semua.
@@ -61,9 +62,26 @@ export function PatientWorkspace({
         .gte('timestamp', since)
         .order('timestamp', { ascending: false })
         .limit(RANGE_POINT_CAP);
-      if (data) {
-        setLogs(data.reverse()); // Reverse to get chronological order for the chart
+
+      if (data && data.length > 0) {
+        setUsedFallback(false);
+        setLogs(data.reverse());
+        return;
       }
+
+      // Gak ada data dalam rentang waktu itu — jangan tampilin kosong begitu
+      // aja, jatuh balik ke pembacaan terakhir yang ada (berapa pun umurnya),
+      // sama seperti sebelum ada pemilih rentang. Freshness-nya tetap jujur
+      // ditampilkan (mis. "27 hari lalu"), bukan disembunyikan — dan ditandai
+      // usedFallback biar UI kasih tau ini di luar rentang yang dipilih.
+      const fallback = await supabase
+        .from('sensor_logs')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('timestamp', { ascending: false })
+        .limit(20);
+      setUsedFallback(!!fallback.data?.length);
+      setLogs(fallback.data ? fallback.data.reverse() : []);
     };
     fetchLogs();
 
@@ -357,6 +375,11 @@ export function PatientWorkspace({
                     ))}
                   </div>
                 </div>
+                {usedFallback && (
+                  <p className="-mt-3 text-[11px] font-medium text-amber-600">
+                    Tidak ada data dalam {rangeHours} jam terakhir — menampilkan pembacaan terakhir yang tersedia.
+                  </p>
+                )}
                 <MonitoringCard
                   title="Kapasitansi Sensor"
                   subtitle="Mendeteksi perubahan volume"
