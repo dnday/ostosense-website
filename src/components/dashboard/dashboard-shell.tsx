@@ -26,6 +26,15 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
 
   const authRouter = useRouter();
   useEffect(() => {
+    // Skip login cuma di localhost (dev), biar dashboard bisa dicek tanpa akun —
+    // dicek dari hostname runtime, bukan NODE_ENV, jadi gak ikut kebawa ke build
+    // production yang di-deploy. TIDAK berlaku di domain manapun selain ini.
+    const isLocalDev = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    if (isLocalDev) {
+      setAuthChecked(true);
+      return;
+    }
+
     // ponytail: sesi hanya divalidasi di client via Supabase; tambahkan middleware SSR bila butuh proteksi server-side.
     const checkSession = async (userId: string | undefined) => {
       if (!userId) {
