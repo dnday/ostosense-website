@@ -141,7 +141,12 @@ function ShellContent({ children }: { children?: React.ReactNode }) {
       <AppSidebar view={currentView} onNavigate={handleNavigate} />
 
       <div className="ml-20 min-h-screen lg:h-screen flex flex-col">
-        <AppHeader view={currentView as any} />
+        <AppHeader
+          view={currentView as any}
+          pathname={pathname}
+          patientName={currentView === "patients" ? selectedPatient?.name : undefined}
+          onNavigateHome={() => handleNavigate("home")}
+        />
 
         {children ? (
           <div className="flex-1 overflow-auto">{children}</div>
