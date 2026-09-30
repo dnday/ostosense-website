@@ -70,16 +70,25 @@ export function NotificationItem({ notification }: NotificationItemProps) {
           </AlertDescription>
           
           <AlertToolbar className="mt-2.5">
-            <Button 
-              variant="inverse" 
-              mode="link" 
-              underlined="solid" 
-              size="sm" 
-              className="font-medium"
-              onClick={handleTinjauPasien}
-            >
-              Tinjau Pasien
-            </Button>
+            {notification.type === "CRITICAL" ? (
+              <button
+                onClick={handleTinjauPasien}
+                className="rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-rose-700"
+              >
+                Tindakan Segera
+              </button>
+            ) : (
+              <Button
+                variant="inverse"
+                mode="link"
+                underlined="solid"
+                size="sm"
+                className="font-medium"
+                onClick={handleTinjauPasien}
+              >
+                Tinjau Pasien
+              </Button>
+            )}
           </AlertToolbar>
         </AlertContent>
       </Alert>
