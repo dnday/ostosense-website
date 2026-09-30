@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Droplets, HelpCircle, Waves, X } from "lucide-react";
+import { AlertTriangle, Download, Droplets, HelpCircle, Waves, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Chart } from "@/components/ui/chart";
 import { supabase } from "@/lib/supabase";
@@ -104,6 +104,37 @@ export function PatientDetailModal({
   // bukan kolom `level` statis. Jatuh balik ke situ kalau belum ada log sensor.
   const bagLevel = last?.capacitance_raw != null ? volumePct(last.capacitance_raw, calibration) : patient.level;
 
+  // Ambang sama dengan roster & workspace (80%/60% = VOLUME_FULL_THRESHOLD nyata di backend).
+  const bagLevelBand = bagLevel >= 80 ? "rose" : bagLevel >= 60 ? "amber" : "blue";
+  const isConnected = !!last && Date.now() - new Date(last.timestamp).getTime() < 10 * 60 * 1000;
+
+  // Tren riil dari selisih sampel pertama-terakhir yang sudah dimuat.
+  let bagLevelTrend: string | null = null;
+  if (logs.length >= 2) {
+    const first = logs[0];
+    if (first.capacitance_raw != null && last?.capacitance_raw != null) {
+      const delta = volumePct(last.capacitance_raw, calibration) - volumePct(first.capacitance_raw, calibration);
+      const minutes = Math.round((new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime()) / 60000);
+      if (minutes > 0 && delta !== 0) {
+        bagLevelTrend = `${delta > 0 ? "+" : ""}${delta}% / ${minutes} mnt`;
+      }
+    }
+  }
+
+  const exportCsv = () => {
+    if (!logs.length) return;
+    const headers = Object.keys(logs[0]);
+    const rows = logs.map((log: any) => headers.map((h) => JSON.stringify(log[h] ?? "")).join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${getPatientSessionId(patient.name) ?? "pasien"}-sensor-logs.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div
       className="fixed inset-0 z-30 flex justify-end bg-black/20 backdrop-blur-[3px]"
@@ -117,32 +148,55 @@ export function PatientDetailModal({
           <div>
             <h2 className="text-xl font-normal text-slate-900">{patient.name}</h2>
             <p className="mt-1 text-sm text-slate-500">Detail Pemantauan</p>
-            <p className="mt-0.5 text-xs font-medium text-slate-500">Data sensor: {formatFreshness(last?.timestamp)}</p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <span className={`inline-block size-1.5 rounded-full ${isConnected ? "bg-emerald-500" : "bg-slate-300"}`} />
+              Data sensor: {formatFreshness(last?.timestamp)}
+            </p>
           </div>
-          <button
-            aria-label="Tutup"
-            onClick={onClose}
-            className="grid size-8 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCsv}
+              disabled={!logs.length}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={14} />
+              Ekspor
+            </button>
+            <button
+              aria-label="Tutup"
+              onClick={onClose}
+              className="grid size-8 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-6 px-8 py-6">
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-[14px] border border-blue-100 bg-blue-50 p-4">
+            <div
+              className={`rounded-[14px] border p-4 ${
+                bagLevelBand === "rose" ? "border-rose-100 bg-rose-50" : bagLevelBand === "amber" ? "border-amber-100 bg-amber-50" : "border-blue-100 bg-blue-50"
+              }`}
+            >
               <div className="flex items-center gap-3">
-                <div className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-600">
+                <div
+                  className={`grid size-10 shrink-0 place-items-center rounded-full ${
+                    bagLevelBand === "rose" ? "bg-rose-100 text-rose-600" : bagLevelBand === "amber" ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"
+                  }`}
+                >
                   <Droplets size={20} strokeWidth={1.5} />
                 </div>
                 <div>
                   <p className="text-sm text-slate-600">Level Kantong</p>
-                  <p className="text-2xl text-slate-900">{bagLevel}%</p>
+                  <p className="text-2xl text-slate-900">
+                    {bagLevel}% {bagLevelTrend && <span className="text-xs font-medium text-slate-500">({bagLevelTrend})</span>}
+                  </p>
                 </div>
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-blue-100">
+              <div className={`mt-3 h-2 overflow-hidden rounded-full ${bagLevelBand === "rose" ? "bg-rose-100" : bagLevelBand === "amber" ? "bg-amber-100" : "bg-blue-100"}`}>
                 <i
-                  className="block h-full rounded-full bg-blue-500"
+                  className={`block h-full rounded-full ${bagLevelBand === "rose" ? "bg-rose-500" : bagLevelBand === "amber" ? "bg-amber-500" : "bg-blue-500"}`}
                   style={{ width: `${bagLevel}%` }}
                 />
               </div>
