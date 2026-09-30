@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Users, ArrowDownUp, AlertCircle, AlertTriangle, CheckCircle2, HelpCircle } from "lucide-react";
+import { Search, Users, ArrowDownUp, AlertCircle, AlertTriangle, CheckCircle2, HelpCircle, Download } from "lucide-react";
 import { CareBadge } from "@/components/ui/care-badge";
 import { Icon } from "@/components/ui/icon";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -28,6 +28,13 @@ export function PatientWorkspace({
   const [searchQuery, setSearchQuery] = useState("");
   const [predictions, setPredictions] = useState<Record<string, AiPredictionRow>>({});
   const [calibration, setCalibration] = useState<Calibration>(DEFAULT_CALIBRATION);
+  const [handled, setHandled] = useState(false);
+
+  // Reset status "sudah ditangani" tiap ganti pasien — jangan sampai kebawa
+  // dari pasien sebelumnya.
+  useEffect(() => {
+    setHandled(false);
+  }, [selectedName]);
 
   useEffect(() => {
     fetchCalibration().then(setCalibration);
@@ -113,6 +120,22 @@ export function PatientWorkspace({
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Ekspor data mentah yang sedang dimuat — bukan fitur baru dari nol, cuma
+  // versi client-side dari export manual yang sudah pernah dilakukan lewat CSV.
+  const exportCsv = () => {
+    if (!logs.length) return;
+    const headers = Object.keys(logs[0]);
+    const rows = logs.map((log) => headers.map((h) => JSON.stringify(log[h] ?? "")).join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${sessionId ?? "pasien"}-sensor-logs.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="py-8 pr-12 pl-8 lg:h-[calc(100vh-105px)] lg:overflow-hidden">
@@ -221,24 +244,55 @@ export function PatientWorkspace({
                       {sessionId && <span className="text-slate-400">· Sesi: {sessionId}</span>}
                     </p>
                   </div>
-                  <CareBadge type={selectedPatient.type} large />
+                  <div className="flex items-center gap-2">
+                    <CareBadge type={selectedPatient.type} large />
+                    <button
+                      onClick={exportCsv}
+                      disabled={!logs.length}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Download size={14} />
+                      Ekspor Data
+                    </button>
+                  </div>
                 </div>
 
-                {isCritical ? (
-                  <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-rose-500 bg-rose-50/50 px-4 py-3.5">
-                    <AlertCircle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
-                    <div>
-                      <h4 className="text-[14px] font-semibold text-rose-700">Status Kritis - Tindakan Segera Diperlukan</h4>
-                      <p className="mt-0.5 text-[13px] text-rose-600/80">Monitoring ketat direkomendasikan</p>
+                {!handled && isCritical ? (
+                  <div className="mt-6 flex flex-col gap-3 rounded-r-xl border-l-[4px] border-rose-500 bg-rose-50/50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+                      <div>
+                        <h4 className="text-[14px] font-semibold text-rose-700">Status Kritis - Tindakan Segera Diperlukan</h4>
+                        <p className="mt-0.5 text-[13px] text-rose-600/80">Monitoring ketat direkomendasikan</p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => setHandled(true)}
+                      className="shrink-0 rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-rose-700"
+                    >
+                      Tandai Sudah Ditangani
+                    </button>
+                  </div>
+                ) : handled && (isCritical || isWarning) ? (
+                  <div className="mt-6 flex items-center gap-3 rounded-r-xl border-l-[4px] border-emerald-500 bg-emerald-50/50 px-4 py-3.5">
+                    <CheckCircle2 strokeWidth={1.5} className="h-5 w-5 shrink-0 text-emerald-500" />
+                    <p className="text-[13px] text-emerald-700">Sudah ditangani oleh nakes yang bertugas.</p>
                   </div>
                 ) : isWarning ? (
-                  <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-amber-500 bg-amber-50/50 px-4 py-3.5">
+                  <div className="mt-6 flex flex-col gap-3 rounded-r-xl border-l-[4px] border-amber-500 bg-amber-50/50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
                     <AlertTriangle strokeWidth={1.5} className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
                     <div>
                       <h4 className="text-[14px] font-semibold text-amber-700">Status Waspada</h4>
                       <p className="mt-0.5 text-[13px] text-amber-600/80">Perhatikan tren perubahan cairan</p>
                     </div>
+                    </div>
+                    <button
+                      onClick={() => setHandled(true)}
+                      className="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-700"
+                    >
+                      Tandai Sudah Ditangani
+                    </button>
                   </div>
                 ) : selectedPrediction.tier === "unknown" ? (
                   <div className="mt-6 flex items-start gap-3 rounded-r-xl border-l-[4px] border-slate-400 bg-slate-50 px-4 py-3.5">
@@ -267,6 +321,17 @@ export function PatientWorkspace({
                     color={bagLevelColor}
                   />
                   {bagLevelTrend && <p className="-mt-2 text-xs font-medium text-slate-400">{bagLevelTrend}</p>}
+                  {/* Track ambang — posisi bar dibanding batas nyata (60%/80%), bukan dekorasi */}
+                  <div className="-mt-2 flex h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="bg-teal-200" style={{ width: "60%" }} />
+                    <div className="bg-amber-200" style={{ width: "20%" }} />
+                    <div className="bg-rose-200" style={{ width: "20%" }} />
+                  </div>
+                  <div className="-mt-1 flex justify-between text-[10px] font-medium text-slate-400">
+                    <span>Aman (0-60%)</span>
+                    <span>Waspada (60-80%)</span>
+                    <span>Kritis (&gt;80%)</span>
+                  </div>
                 </div>
                 <MonitoringCard
                   title="Kapasitansi Sensor"
@@ -280,16 +345,16 @@ export function PatientWorkspace({
                   kind="resistance"
                   data={logs}
                 />
-                <section className="rounded-[14px] border border-slate-200 bg-slate-50 p-5">
-                  <h4 className="text-sm font-normal">Catatan Klinis</h4>
-                  <ul className="mt-3 space-y-2 text-xs text-slate-500">
-                    {clinicalNotes.map((note) => (
-                      <li key={note} className="flex items-center gap-2">
-                        <i className="size-1.5 rounded-full bg-blue-500" />
-                        {note}
-                      </li>
+                <section className="rounded-[14px] border border-slate-200 bg-white p-5">
+                  <h4 className="text-sm font-normal text-slate-900">Catatan Klinis</h4>
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {clinicalNotes.map((note, i) => (
+                      <div key={note} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                        <span className={`inline-block size-1.5 rounded-full ${["bg-blue-500", "bg-teal-500", "bg-amber-500"][i % 3]}`} />
+                        <p className="mt-1.5 text-xs font-medium text-slate-700">{note}</p>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </section>
               </div>
             </>
