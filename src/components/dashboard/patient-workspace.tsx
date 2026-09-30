@@ -91,6 +91,24 @@ export function PatientWorkspace({
   const lastCap = logs.length ? logs[logs.length - 1].capacitance_raw : null;
   const bagLevel = lastCap != null ? volumePct(lastCap, calibration) : selectedPatient.level;
 
+  // Ambang sama dengan roster (80% = VOLUME_FULL_THRESHOLD nyata di backend).
+  const bagLevelColor = bagLevel >= 80 ? "rose" : bagLevel >= 60 ? "amber" : "blue";
+
+  // Tren riil dari selisih sampel pertama-terakhir yang sudah dimuat — bukan
+  // angka rekaan. Ditampilkan cuma kalau rentang waktunya jelas (>=2 sampel).
+  const sessionId = getPatientSessionId(selectedName);
+  const isConnected = !!logs.length && Date.now() - new Date(logs[logs.length - 1].timestamp).getTime() < 10 * 60 * 1000;
+  let bagLevelTrend: string | null = null;
+  if (logs.length >= 2) {
+    const first = logs[0];
+    const last = logs[logs.length - 1];
+    const delta = volumePct(last.capacitance_raw, calibration) - volumePct(first.capacitance_raw, calibration);
+    const minutes = Math.round((new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime()) / 60000);
+    if (minutes > 0 && delta !== 0) {
+      bagLevelTrend = `${delta > 0 ? "+" : ""}${delta}% dalam ${minutes} menit terakhir`;
+    }
+  }
+
   const filteredRoster = rosterPatients.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.location.toLowerCase().includes(searchQuery.toLowerCase())
@@ -197,8 +215,10 @@ export function PatientWorkspace({
                     <p className="mt-1 text-sm text-slate-500">
                       {selectedPatient.location}
                     </p>
-                    <p className="mt-0.5 text-xs font-medium text-slate-500">
-                      Data sensor: {formatFreshness(logs[logs.length - 1]?.timestamp)}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <span className={`inline-block size-1.5 rounded-full ${isConnected ? "bg-emerald-500" : "bg-slate-300"}`} />
+                      {formatFreshness(logs[logs.length - 1]?.timestamp)}
+                      {sessionId && <span className="text-slate-400">· Sesi: {sessionId}</span>}
                     </p>
                   </div>
                   <CareBadge type={selectedPatient.type} large />
@@ -244,8 +264,9 @@ export function PatientWorkspace({
                     icon="drop"
                     label="Level Kantong"
                     value={bagLevel}
-                    color="blue"
+                    color={bagLevelColor}
                   />
+                  {bagLevelTrend && <p className="-mt-2 text-xs font-medium text-slate-400">{bagLevelTrend}</p>}
                 </div>
                 <MonitoringCard
                   title="Kapasitansi Sensor"
