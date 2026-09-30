@@ -70,11 +70,6 @@ export function DashboardHome({
       globalRisk = "Belum diketahui";
     }
 
-    // Persentase pasien yang sedang ditandai (kritis/waspada) dari total yang
-    // punya klasifikasi AI — bukan angka tren rekaan, murni hitungan real-time.
-    const classified = totalPatients - unavailable;
-    const actionPct = classified > 0 ? Math.round((actionTotal / classified) * 100) : 0;
-
     return {
       totalPatients,
       breakdown: { inap, jalan },
@@ -83,7 +78,6 @@ export function DashboardHome({
       tierCounts: { normal, warning, critical, unavailable },
       unavailable,
       globalRisk,
-      actionPct,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patients, predictions, volumes]);
@@ -209,7 +203,9 @@ export function DashboardHome({
             >
               {summary.globalRisk}
             </strong>{" "}
-            <span className="text-sm font-medium text-slate-500">({summary.actionPct}% ditandai AI)</span>
+            <span className="text-sm font-medium text-slate-500">
+              ({summary.actionNeeded.total} dari {summary.totalPatients - summary.unavailable} pasien berklasifikasi)
+            </span>
           </p>
           {/* Bar sebaran tier — proporsi riil dari jumlah pasien per kelas, bukan angka tren */}
           <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-slate-100">
