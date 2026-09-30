@@ -63,9 +63,14 @@ export function AppHeader({
       setGreeting("Selamat Malam");
     }
 
-    // Mengambil profil dari sesi Supabase yang sedang login
+    // Mengambil profil dari sesi Supabase yang sedang login. Tanpa sesi (mis.
+    // mode skip-login di localhost), gak ada user buat ditunggu — kasih fallback
+    // biar sapaan gak nyangkut selamanya di "Memuat...".
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
+      if (!data.user) {
+        setUser({ id: "", name: "(mode lokal)", role: "Perawat", unit: "", currentShift: "", isShiftActive: false });
+        return;
+      }
       setUser({
         id: data.user.id,
         name: data.user.user_metadata?.full_name || data.user.email || "Pengguna",
