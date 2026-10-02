@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; // Import supabase disiapkan untuk real logic
+import { DownloadAppModal } from "@/components/download-app-modal";
 
 export default function LoginPage() {
   return (
@@ -205,6 +206,7 @@ function LoginForm() {
           </button>
         </div>
       </div>
+      <DownloadAppModal />
     </div>
   );
 }
