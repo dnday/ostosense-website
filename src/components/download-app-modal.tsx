@@ -6,7 +6,7 @@ import { X, Download } from "lucide-react";
 
 // Link build APK preview EAS terbaru — ganti tiap kali build baru di-generate
 // (sama seperti DOWNLOAD_APK_URL di mobileapp/src/constants/api.ts, belum ada channel auto-update).
-export const DOWNLOAD_APK_URL = "https://expo.dev/artifacts/eas/T7j8fku8ZVo8oPWaQdkQhWSINVSxzf7VJu45Vvu--po.apk";
+export const DOWNLOAD_APK_URL = "https://expo.dev/artifacts/eas/nBTvyQ9zi_LGYUhnQhN6s7kc2OEUyKz9HpPnpS23P6Q.apk";
 
 const QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=1d2f4a&data=${encodeURIComponent(DOWNLOAD_APK_URL)}`;
 const DISMISS_KEY = "ostosense-download-popup-dismissed";
