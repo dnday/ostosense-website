@@ -1,16 +1,17 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { ligOhm, formatOhm } from "@/lib/lig";
 
 export type ChartKind = "moisture" | "resistance" | "baseplate";
 
 // Semua nilai MENTAH dari ESP32-S3: kapasitif = hitungan touchRead (bukan pF),
-// LIG = hitungan ADC 12-bit 0–4095 (bukan kΩ). Nama seri muncul di tooltip.
+// LIG = ADC 12-bit 0–4095, dikonversi ke perkiraan hambatan (lib/lig.ts). Nama seri muncul di tooltip.
 const SERIES: Record<ChartKind, { key: string; name: string; color: string }[]> = {
   moisture: [{ key: "capacitance_raw", name: "Kap_7 naik dari awal", color: "#008bd2" }],
   resistance: [
-    { key: "res_15_raw", name: "Res_15 dalam (ADC 0–4095)", color: "#a23bf0" },
-    { key: "res_16_raw", name: "Res_16 luar (ADC 0–4095)", color: "#e11d48" },
+    { key: "res_15_raw", name: "Res_15 dalam (perkiraan)", color: "#a23bf0" },
+    { key: "res_16_raw", name: "Res_16 luar (perkiraan)", color: "#e11d48" },
     // data lama/demo hanya punya rata-rata lig_raw, tanpa per kanal
-    { key: "lig_legacy", name: "LIG gabungan, data lama (ADC 0–4095)", color: "#64748b" },
+    { key: "lig_legacy", name: "LIG gabungan, data lama (perkiraan)", color: "#64748b" },
   ],
   baseplate: [
     { key: "kap_4_raw", name: "Kap_4 dalam, naik dari awal", color: "#0d9488" },
@@ -44,7 +45,13 @@ export function Chart({ kind, data = [] }: { kind: ChartKind; data?: any[] }) {
     for (const s of series) {
       const v = (log[s.key] ?? row[s.key]) as number; // lig_legacy sudah diisi di atas
       const b = baseline[s.key];
-      row[s.key] = relative && Number.isFinite(v) && b ? Math.round(((v - b) / b) * 1000) / 10 : v;
+      if (relative) {
+        row[s.key] = Number.isFinite(v) && b ? Math.round(((v - b) / b) * 1000) / 10 : v;
+      } else {
+        // kΩ untuk sumbu log; terbuka (Infinity) / 0 Ω tidak bisa digambar -> celah
+        const ohm = ligOhm(v);
+        row[s.key] = ohm != null && Number.isFinite(ohm) && ohm > 0 ? ohm / 1000 : null;
+      }
       row[`${s.key}__mentah`] = v;
     }
     return row;
@@ -72,16 +79,18 @@ export function Chart({ kind, data = [] }: { kind: ChartKind; data?: any[] }) {
           />
           <YAxis 
             domain={['auto', 'auto']}
+            scale={relative ? "auto" : "log"}
+            allowDataOverflow={false}
             tick={{ fontSize: 10, fill: "#64748b" }} 
             axisLine={false} 
             tickLine={false}
-            tickFormatter={relative ? (v) => `${v}%` : undefined}
+            tickFormatter={relative ? (v) => `${v}%` : (v) => formatOhm(v * 1000)}
           />
           <Tooltip
             formatter={(value, _name, item) =>
               relative
                 ? `${value}% (mentah ${item.payload[`${item.dataKey}__mentah`]})`
-                : value
+                : `${formatOhm(ligOhm(item.payload[`${item.dataKey}__mentah`]))} (ADC ${item.payload[`${item.dataKey}__mentah`]})`
             }
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             labelStyle={{ color: '#64748b', fontSize: '12px' }}
@@ -96,7 +105,7 @@ export function Chart({ kind, data = [] }: { kind: ChartKind; data?: any[] }) {
               stroke={s.color}
               strokeWidth={2}
               dot={false}
-              connectNulls
+              connectNulls={relative}
               isAnimationActive={false} // Matikan animasi awal agar pergerakan real-time terlihat mulus
             />
           ))}

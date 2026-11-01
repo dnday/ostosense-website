@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ligOhm, formatOhm } from "@/lib/lig";
 import { AlertTriangle, Download, Droplets, HelpCircle, Waves, X } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Chart } from "@/components/ui/chart";
@@ -232,7 +233,7 @@ export function PatientDetailModal({
             <div className="flex items-center gap-3">
               <Waves size={20} strokeWidth={1.5} className="text-slate-500" />
               <div>
-                <h3 className="text-[18px] font-normal text-slate-900">Sensor LIG Resistif — perekat (ADC mentah 0–4095, bukan kΩ)</h3>
+                <h3 className="text-[18px] font-normal text-slate-900">Sensor LIG Resistif — perekat (perkiraan hambatan)</h3>
                 <p className="text-sm text-slate-500">Belum ada interpretasi klinis tervalidasi — lihat OSTOSENSE-AI</p>
               </div>
             </div>
@@ -242,12 +243,12 @@ export function PatientDetailModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Failsafe (dalam baseplate)</p>
-              <p className="mt-1 text-[28px] text-slate-900">{failsafeResistance !== null ? `${failsafeResistance} ADC` : "—"}</p>
+              <p className="mt-1 text-[28px] text-slate-900">{formatOhm(ligOhm(failsafeResistance))}</p>
               <p className="mt-1 text-xs text-slate-500">Res_15 — deteksi dini kontak cairan</p>
             </div>
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
               <p className="text-sm text-slate-500">Kebocoran (luar baseplate)</p>
-              <p className="mt-1 text-[28px] text-slate-900">{leakResistance !== null ? `${leakResistance} ADC` : "—"}</p>
+              <p className="mt-1 text-[28px] text-slate-900">{formatOhm(ligOhm(leakResistance))}</p>
               <p className="mt-1 text-xs text-slate-500">Res_16 — cairan hampir/sedang menembus keluar</p>
             </div>
           </div>

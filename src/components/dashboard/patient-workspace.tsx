@@ -394,7 +394,7 @@ export function PatientWorkspace({
                 />
                 <MonitoringCard
                   title="LIG Resistif (perekat) — Res_15 & Res_16"
-                  subtitle="Mendeteksi cairan yang menyentuh elektroda. ADC mentah 0–4095 (bukan kΩ). Belum ada interpretasi klinis tervalidasi"
+                  subtitle="Mendeteksi cairan yang menyentuh elektroda. Perkiraan hambatan dari ADC (pembagi 10 kΩ); makin kecil = makin basah. Belum ada interpretasi klinis tervalidasi"
                   kind="resistance"
                   data={logs}
                 />
