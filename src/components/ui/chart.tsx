@@ -5,7 +5,7 @@ export type ChartKind = "moisture" | "resistance" | "baseplate";
 // Semua nilai MENTAH dari ESP32-S3: kapasitif = hitungan touchRead (bukan pF),
 // LIG = hitungan ADC 12-bit 0–4095 (bukan kΩ). Nama seri muncul di tooltip.
 const SERIES: Record<ChartKind, { key: string; name: string; color: string }[]> = {
-  moisture: [{ key: "capacitance_raw", name: "Kap_7 (hitungan touch)", color: "#008bd2" }],
+  moisture: [{ key: "capacitance_raw", name: "Kap_7 naik dari awal", color: "#008bd2" }],
   resistance: [
     { key: "res_15_raw", name: "Res_15 dalam (ADC 0–4095)", color: "#a23bf0" },
     { key: "res_16_raw", name: "Res_16 luar (ADC 0–4095)", color: "#e11d48" },
@@ -13,20 +13,42 @@ const SERIES: Record<ChartKind, { key: string; name: string; color: string }[]> 
     { key: "lig_legacy", name: "LIG gabungan, data lama (ADC 0–4095)", color: "#64748b" },
   ],
   baseplate: [
-    { key: "kap_4_raw", name: "Kap_4 dalam (hitungan touch)", color: "#0d9488" },
-    { key: "kap_5_raw", name: "Kap_5 luar (hitungan touch)", color: "#f59e0b" },
+    { key: "kap_4_raw", name: "Kap_4 dalam, naik dari awal", color: "#0d9488" },
+    { key: "kap_5_raw", name: "Kap_5 luar, naik dari awal", color: "#f59e0b" },
   ],
 };
 
+function median(xs: number[]): number | undefined {
+  if (xs.length === 0) return undefined;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
 export function Chart({ kind, data = [] }: { kind: ChartKind; data?: any[] }) {
   const series = SERIES[kind];
+  // Hitungan touchRead tidak bisa diubah ke pF tanpa kalibrasi, jadi kapasitif
+  // ditampilkan sebagai % naik dari awal rentang grafik (sama dengan cara AI:
+  // selisih dari kondisi awal). LIG tetap ADC mentah.
+  const relative = kind !== "resistance";
+  const baseline = Object.fromEntries(
+    series.map((s) => [s.key, median(data.map((l) => l[s.key]).filter(Number.isFinite).slice(0, 10))]),
+  );
 
   // Format data for Recharts
-  const chartData = data.map((log) => ({
-    time: new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    ...Object.fromEntries(series.map((s) => [s.key, log[s.key]])),
-    lig_legacy: log.res_15_raw == null ? log.lig_raw : undefined,
-  }));
+  const chartData = data.map((log) => {
+    const row: Record<string, unknown> = {
+      time: new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      lig_legacy: log.res_15_raw == null ? log.lig_raw : undefined,
+    };
+    for (const s of series) {
+      const v = (log[s.key] ?? row[s.key]) as number; // lig_legacy sudah diisi di atas
+      const b = baseline[s.key];
+      row[s.key] = relative && Number.isFinite(v) && b ? Math.round(((v - b) / b) * 1000) / 10 : v;
+      row[`${s.key}__mentah`] = v;
+    }
+    return row;
+  });
 
   // Jika data kosong, tampilkan placeholder agar tidak rusak
   if (chartData.length === 0) {
@@ -52,9 +74,15 @@ export function Chart({ kind, data = [] }: { kind: ChartKind; data?: any[] }) {
             domain={['auto', 'auto']}
             tick={{ fontSize: 10, fill: "#64748b" }} 
             axisLine={false} 
-            tickLine={false} 
+            tickLine={false}
+            tickFormatter={relative ? (v) => `${v}%` : undefined}
           />
-          <Tooltip 
+          <Tooltip
+            formatter={(value, _name, item) =>
+              relative
+                ? `${value}% (mentah ${item.payload[`${item.dataKey}__mentah`]})`
+                : value
+            }
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             labelStyle={{ color: '#64748b', fontSize: '12px' }}
             itemStyle={{ fontSize: '14px', fontWeight: 600 }}

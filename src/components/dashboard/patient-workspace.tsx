@@ -382,13 +382,13 @@ export function PatientWorkspace({
                 )}
                 <MonitoringCard
                   title="Kapasitif Polyester (kantong) — Kap_7"
-                  subtitle="Membaca isi kantong. Angka mentah ESP32-S3 (bukan pF). Dipakai untuk level kantong dan AI"
+                  subtitle="Membaca isi kantong. % naik dari awal rentang grafik (tanpa kalibrasi pF). Dipakai untuk level kantong dan AI"
                   kind="moisture"
                   data={logs}
                 />
                 <MonitoringCard
                   title="LIG Kapasitif (perekat) — Kap_4 & Kap_5"
-                  subtitle="Membaca kelembapan di bawah perekat. Angka mentah, baru direkam, belum dipakai AI maupun peringatan"
+                  subtitle="Membaca kelembapan di bawah perekat. % naik dari awal rentang grafik. Baru direkam, belum dipakai AI maupun peringatan"
                   kind="baseplate"
                   data={logs}
                 />
