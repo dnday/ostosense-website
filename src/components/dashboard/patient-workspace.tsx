@@ -381,14 +381,20 @@ export function PatientWorkspace({
                   </p>
                 )}
                 <MonitoringCard
-                  title="Kapasitansi Sensor"
-                  subtitle="Mendeteksi perubahan volume"
+                  title="Kapasitif Polyester (kantong) — Kap_7"
+                  subtitle="Membaca isi kantong. Angka mentah ESP32-S3 (bukan pF). Dipakai untuk level kantong dan AI"
                   kind="moisture"
                   data={logs}
                 />
                 <MonitoringCard
-                  title="Resistansi LIG (mentah)"
-                  subtitle="Bacaan sensor LIG, belum ada interpretasi klinis tervalidasi"
+                  title="LIG Kapasitif (perekat) — Kap_4 & Kap_5"
+                  subtitle="Membaca kelembapan di bawah perekat. Angka mentah, baru direkam, belum dipakai AI maupun peringatan"
+                  kind="baseplate"
+                  data={logs}
+                />
+                <MonitoringCard
+                  title="LIG Resistif (perekat) — Res_15 & Res_16"
+                  subtitle="Mendeteksi cairan yang menyentuh elektroda. ADC mentah 0–4095 (bukan kΩ). Belum ada interpretasi klinis tervalidasi"
                   kind="resistance"
                   data={logs}
                 />

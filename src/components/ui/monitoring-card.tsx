@@ -1,4 +1,4 @@
-import { Chart } from "@/components/ui/chart";
+import { Chart, type ChartKind } from "@/components/ui/chart";
 
 export function MonitoringCard({
   title,
@@ -8,7 +8,7 @@ export function MonitoringCard({
 }: {
   title: string;
   subtitle: string;
-  kind: "moisture" | "resistance";
+  kind: ChartKind;
   data?: any[];
 }) {
   return (
