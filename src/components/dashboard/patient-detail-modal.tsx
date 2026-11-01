@@ -233,8 +233,8 @@ export function PatientDetailModal({
             <div className="flex items-center gap-3">
               <Waves size={20} strokeWidth={1.5} className="text-slate-500" />
               <div>
-                <h3 className="text-[18px] font-normal text-slate-900">Sensor LIG Resistif — perekat (perkiraan hambatan)</h3>
-                <p className="text-sm text-slate-500">Belum ada interpretasi klinis tervalidasi — lihat OSTOSENSE-AI</p>
+                <h3 className="text-[18px] font-normal text-slate-900">Rembesan Perekat</h3>
+                <p className="text-sm text-slate-500">Perkiraan hambatan sensor LIG. Makin kecil = makin basah.</p>
               </div>
             </div>
             <Chart kind="resistance" data={logs} />
@@ -242,27 +242,27 @@ export function PatientDetailModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
-              <p className="text-sm text-slate-500">Failsafe (dalam baseplate)</p>
+              <p className="text-sm text-slate-500">Bagian dalam</p>
               <p className="mt-1 text-[28px] text-slate-900">{formatOhm(ligOhm(failsafeResistance))}</p>
-              <p className="mt-1 text-xs text-slate-500">Res_15 — deteksi dini kontak cairan</p>
+              <p className="mt-1 text-xs text-slate-500">Tanda awal cairan</p>
             </div>
             <div className="rounded-[14px] border border-slate-100 bg-white p-4">
-              <p className="text-sm text-slate-500">Kebocoran (luar baseplate)</p>
+              <p className="text-sm text-slate-500">Bagian luar</p>
               <p className="mt-1 text-[28px] text-slate-900">{formatOhm(ligOhm(leakResistance))}</p>
-              <p className="mt-1 text-xs text-slate-500">Res_16 — cairan hampir/sedang menembus keluar</p>
+              <p className="mt-1 text-xs text-slate-500">Cairan hampir keluar</p>
             </div>
           </div>
 
           {last && (
             <section className="rounded-[14px] border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">LIG Kapasitif — kelembapan perekat (mentah)</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kelembapan perekat</p>
               <div className="mt-2 grid grid-cols-2 gap-3 text-center">
                 <div>
-                  <p className="text-[11px] text-slate-500">Kap_4 (dalam)</p>
+                  <p className="text-[11px] text-slate-500">Dalam</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_4_raw ?? "—"}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-500">Kap_5 (luar)</p>
+                  <p className="text-[11px] text-slate-500">Luar</p>
                   <p className="text-sm font-semibold text-slate-700">{last.kap_5_raw ?? "—"}</p>
                 </div>
               </div>

@@ -381,20 +381,20 @@ export function PatientWorkspace({
                   </p>
                 )}
                 <MonitoringCard
-                  title="Kapasitif Polyester (kantong) — Kap_7"
-                  subtitle="Membaca isi kantong. % naik dari awal rentang grafik (tanpa kalibrasi pF). Dipakai untuk level kantong dan AI"
+                  title="Isi Kantong"
+                  subtitle="Sensor polyester di kantong. Naik = kantong makin terisi."
                   kind="moisture"
                   data={logs}
                 />
                 <MonitoringCard
-                  title="LIG Kapasitif (perekat) — Kap_4 & Kap_5"
-                  subtitle="Membaca kelembapan di bawah perekat. % naik dari awal rentang grafik. Baru direkam, belum dipakai AI maupun peringatan"
+                  title="Kelembapan Perekat"
+                  subtitle="Sensor LIG di perekat. Masih tahap uji."
                   kind="baseplate"
                   data={logs}
                 />
                 <MonitoringCard
-                  title="LIG Resistif (perekat) — Res_15 & Res_16"
-                  subtitle="Mendeteksi cairan yang menyentuh elektroda. Perkiraan hambatan dari ADC (pembagi 10 kΩ); makin kecil = makin basah. Belum ada interpretasi klinis tervalidasi"
+                  title="Rembesan Perekat"
+                  subtitle="Sensor LIG di perekat. Makin kecil = makin basah."
                   kind="resistance"
                   data={logs}
                 />

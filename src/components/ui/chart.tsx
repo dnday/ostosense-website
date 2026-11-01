@@ -6,16 +6,16 @@ export type ChartKind = "moisture" | "resistance" | "baseplate";
 // Semua nilai MENTAH dari ESP32-S3: kapasitif = hitungan touchRead (bukan pF),
 // LIG = ADC 12-bit 0–4095, dikonversi ke perkiraan hambatan (lib/lig.ts). Nama seri muncul di tooltip.
 const SERIES: Record<ChartKind, { key: string; name: string; color: string }[]> = {
-  moisture: [{ key: "capacitance_raw", name: "Kap_7 naik dari awal", color: "#008bd2" }],
+  moisture: [{ key: "capacitance_raw", name: "Isi kantong", color: "#008bd2" }],
   resistance: [
-    { key: "res_15_raw", name: "Res_15 dalam (perkiraan)", color: "#a23bf0" },
-    { key: "res_16_raw", name: "Res_16 luar (perkiraan)", color: "#e11d48" },
+    { key: "res_15_raw", name: "Dalam", color: "#a23bf0" },
+    { key: "res_16_raw", name: "Luar", color: "#e11d48" },
     // data lama/demo hanya punya rata-rata lig_raw, tanpa per kanal
-    { key: "lig_legacy", name: "LIG gabungan, data lama (perkiraan)", color: "#64748b" },
+    { key: "lig_legacy", name: "Gabungan (data lama)", color: "#64748b" },
   ],
   baseplate: [
-    { key: "kap_4_raw", name: "Kap_4 dalam, naik dari awal", color: "#0d9488" },
-    { key: "kap_5_raw", name: "Kap_5 luar, naik dari awal", color: "#f59e0b" },
+    { key: "kap_4_raw", name: "Dalam", color: "#0d9488" },
+    { key: "kap_5_raw", name: "Luar", color: "#f59e0b" },
   ],
 };
 
@@ -89,8 +89,8 @@ export function Chart({ kind, data = [] }: { kind: ChartKind; data?: any[] }) {
           <Tooltip
             formatter={(value, _name, item) =>
               relative
-                ? `${value}% (mentah ${item.payload[`${item.dataKey}__mentah`]})`
-                : `${formatOhm(ligOhm(item.payload[`${item.dataKey}__mentah`]))} (ADC ${item.payload[`${item.dataKey}__mentah`]})`
+                ? `${Number(value) > 0 ? "+" : ""}${value}%`
+                : formatOhm(ligOhm(item.payload[`${item.dataKey}__mentah`]))
             }
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             labelStyle={{ color: '#64748b', fontSize: '12px' }}
